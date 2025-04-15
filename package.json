@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev":"nodemon backend/server.js",
-    "start":"node backend/server.js "
+    "dev": "nodemon backend/server.js",
+    "start": "node backend/server.js "
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type":"module",
+  "type": "module",
   "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.2",
