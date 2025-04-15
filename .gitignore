@@ -1,3 +1,2 @@
 /node_modules
 .env
-mongo_url = "mongodb+srv://yash:hKimiPvfGZjxkpU9@cluster0.yvabp.mongodb.net/x"
