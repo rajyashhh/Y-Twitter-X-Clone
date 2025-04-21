@@ -1,17 +1,17 @@
 
 import z from "zod";
 import bcrypt from "bcrypt";
-
+import { generateTokenAndSetCookie } from "../lib/utils/generateTokenAndSetCookie.js";
 import User from '../models/user.model.js'
 
 const signup = async (req, res) => {
   try {
-    const {fullName, userName, email, password}=req.body;
+    const {fullName, username, email, password}=req.body;
     const requiredBody = z.object({
         email : z.string().min(5).max(100).email(),
         password : z.string().min(5,"Password must contain atleast 5 characters").max(20),
         fullName : z.string().min(3).max(30),
-        userName : z.string().min(3).max(30)
+        username : z.string().min(3).max(30)
     })
     const parsedDatawithSuccess = requiredBody.safeParse(req.body);
     if(!parsedDatawithSuccess.success){
@@ -22,11 +22,11 @@ const signup = async (req, res) => {
         return;
     }
 
-    const existingUser = await User.findOne({userName});
+    const existingUser = await User.findOne({username});
     if(existingUser){
         return res.status(400).json(
             {
-                error : "Username already taken!"
+                error : "username already taken!"
             }
         )
     }
@@ -42,18 +42,19 @@ const signup = async (req, res) => {
 
     const newUser = new User({
         fullName : fullName,
-        userName : userName,
+        username : username,
         email : email,
         password : hashedPassword
     })
 
     if(newUser){
-        generateTokenAndSetCookie(newUser._id,res)
         await newUser.save();
+        generateTokenAndSetCookie(newUser._id,res)
+        
         res.status(201).json({
             _id: newUser._id,
             fullName : newUser.fullName,
-            userName : newUser.userName,
+            username : newUser.username,
             email : newUser.email,
             followers : newUser.followers,
             following : newUser.following,
@@ -67,7 +68,7 @@ const signup = async (req, res) => {
         })
     }
   } catch (error) {
-    console.log("Error in signup controller");
+    console.log("Error in signup controller", error);
     res.status(500).json({
         error : "Internal Server Error"
     })
