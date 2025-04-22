@@ -48,8 +48,9 @@ const signup = async (req, res) => {
     })
 
     if(newUser){
-        await newUser.save();
         generateTokenAndSetCookie(newUser._id,res)
+        await newUser.save();
+        
         
         res.status(201).json({
             _id: newUser._id,
@@ -75,9 +76,41 @@ const signup = async (req, res) => {
   }
 };
 const login = async (req, res) => {
-    res.json({
-        message: "You hit the login endpoint"
-    });
+    try{
+        const { email, password}=req.body;
+        const user = await User.findOne({email});
+        if(!user){
+            res.json({
+                message : "No user found with this email ID"
+            })
+            return;
+        }
+        const passwordMatch = bcrypt.compare(password, user?.password || "") //Here used question mark so that if no password is available then, it will not crash, rather it will compare with an empty string.
+        if(passwordMatch){
+            generateTokenAndSetCookie(user._id, res);
+            res.status(200).json({
+            _id: user._id,
+            fullName : user.fullName,
+            username : user.username,
+            email : user.email,
+            followers : user.followers,
+            following : user.following,
+            profileImg : user.profileImg,
+            coverImg : user.coverImg
+            })
+        }else{
+            res.json({
+                message : "Password does not match"
+            })
+        }
+
+    } catch(error){
+        console.log("Error in login controller", error.message);
+        res.status(500).json({
+            error : "Internal Server Error"
+        })
+    }
+    
 };
 const logout = async (req, res) => {
     res.json({
