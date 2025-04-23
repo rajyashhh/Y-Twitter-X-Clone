@@ -1,5 +1,6 @@
 import express from "express";
 import authRoutes from "./routes/auth.routes.js"
+import userRoutes from "./routes/user.routes.js"
 import dotenv from "dotenv"
 import connectMongoDB from "./db/connectMongoDB.js";
 import mongoose from "mongoose";
@@ -8,7 +9,7 @@ import cookieParser from "cookie-parser";
 const app = express();
 dotenv.config(); 
 
-const PORT = 3000;
+const PORT = process.env.PORT;
 
 
 const corsOptions = {
@@ -27,7 +28,7 @@ app.get("/", (req,res)=>{
 })
 
 app.use('/api/auth', authRoutes);
-
+app.use('/api/user', userRoutes);
 app.listen(PORT,()=>{
     console.log(`Server is running on port ${PORT}`);
     connectMongoDB();
