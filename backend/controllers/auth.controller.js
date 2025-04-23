@@ -85,7 +85,7 @@ const login = async (req, res) => {
             })
             return;
         }
-        const passwordMatch = bcrypt.compare(password, user?.password || "") //Here used question mark so that if no password is available then, it will not crash, rather it will compare with an empty string.
+        const passwordMatch = await bcrypt.compare(password, user.password) //Here used question mark so that if no password is available then, it will not crash, rather it will compare with an empty string.
         if(passwordMatch){
             generateTokenAndSetCookie(user._id, res);
             res.status(200).json({
@@ -113,6 +113,18 @@ const login = async (req, res) => {
     
 };
 const logout = async (req, res) => {
+    try {
+        res.cookie("jwt","",{maxAge:0}),
+        res.status(200).json({
+            message:"User successfully signed out"
+        })
+    } catch (error) {
+        console.log("Error in logout controller", error.message),
+        res.status(500).json({
+            error:"Internal Server Error"
+        })
+        
+    }
     res.json({
         message: "You hit the logout endpoint"
     });
