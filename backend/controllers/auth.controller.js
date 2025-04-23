@@ -133,11 +133,13 @@ const logout = async (req, res) => {
 
 const getMe = async (req, res) => {
     try {
-        const user  = user.findOne({email})
+        const user  = await User.findById(req.user._id).select("-password");
+        res.status(200).json(user);
+
     } catch (error) {
-        console.log("Error in protected route authentication", error.message);
+        console.log("Error in getMe controller", error.message);
         res.json({
-            error : "Erroir in authenticating from the protected route"
+            error : "Error in authenticating from the protected route"
         })
     }
 }

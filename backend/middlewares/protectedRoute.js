@@ -1,9 +1,9 @@
 
-import User from "../backend/models/user.model.js";
-
+import User from "../models/user.model.js";
+import jwt from 'jsonwebtoken';
 const protectedRoute = async (req, res, next)=>{
     try {
-        const token = req.cookie.jwt;
+        const token = req.cookies.jwt;
         if(!token){
             return res.status(401).json({
                 error : "Unauthorized : No token provided"
@@ -30,3 +30,5 @@ const protectedRoute = async (req, res, next)=>{
         })
     }
 }
+
+export default protectedRoute;
