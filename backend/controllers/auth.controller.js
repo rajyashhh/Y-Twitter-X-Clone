@@ -48,9 +48,9 @@ const signup = async (req, res) => {
     })
 
     if(newUser){
-        generateTokenAndSetCookie(newUser._id,res)
-        await newUser.save();
         
+        await newUser.save();
+        generateTokenAndSetCookie(newUser._id,res)
         
         res.status(201).json({
             _id: newUser._id,
@@ -130,4 +130,15 @@ const logout = async (req, res) => {
     });
 };
 
-export {signup, login, logout};
+
+const getMe = async (req, res) => {
+    try {
+        const user  = user.findOne({email})
+    } catch (error) {
+        console.log("Error in protected route authentication", error.message);
+        res.json({
+            error : "Erroir in authenticating from the protected route"
+        })
+    }
+}
+export {signup, login, logout, getMe};
