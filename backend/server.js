@@ -1,6 +1,7 @@
 import express from "express";
 import authRoutes from "./routes/auth.routes.js"
 import userRoutes from "./routes/user.routes.js"
+import postRoutes from "./routes/post.routes.js"
 import dotenv from "dotenv"
 import connectMongoDB from "./db/connectMongoDB.js";
 import mongoose from "mongoose";
@@ -35,6 +36,7 @@ app.get("/", (req,res)=>{
 
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/posts', postRoutes);
 app.listen(PORT,()=>{
     console.log(`Server is running on port ${PORT}`);
     connectMongoDB();
