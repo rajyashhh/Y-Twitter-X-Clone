@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 import cors from 'cors';
 import cookieParser from "cookie-parser";
 import {v2 as cloudinary} from "cloudinary";
+
 const app = express();
 dotenv.config(); 
 cloudinary.config({
@@ -24,7 +25,7 @@ const corsOptions = {
     origin: "*",
     credentials: true
 }
-
+app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions))
 app.use(express.json());
 app.use(cookieParser())
