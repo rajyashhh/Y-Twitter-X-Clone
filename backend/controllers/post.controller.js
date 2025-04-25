@@ -133,4 +133,26 @@ const likeUnlikePost = async (req,res)=>{
             })
     }
 }
-export {createPost, deletePost, commentOnPost, likeUnlikePost};
+
+
+const getAllPosts = async (req,res)=>{
+    try {
+        const posts = await Post.find().sort({createdAt : -1}).populate({
+            path: "user",
+            select: "-password"
+        }).populate({
+            path: "comments.user",
+            select : "-password"
+        });
+        if(posts.length===0){
+            return res.status(200).json([])
+        }
+        res.status(200).json(posts);
+    } catch (error) {
+        console.log("Error in getting all the posts : ", error.message);
+        res.status(500).json({
+            error: "Internal Server Error!"
+        })
+    }
+}
+export {createPost, deletePost, commentOnPost, likeUnlikePost, getAllPosts};
