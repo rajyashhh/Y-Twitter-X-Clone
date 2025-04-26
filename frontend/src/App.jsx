@@ -1,17 +1,19 @@
+
+import {Route, Routes} from "react-router-dom";
+import HomePage from "./pages/home/HomePage";
+import SignupPage from "./pages/auth/Signup/SignupPage";
+import LoginPage from "./pages/auth/Login/LoginPage";
+
 function App(){
   return(
-    <>
-      
-      <button className="btn btn-primary">Neutral</button>
-<button className="btn btn-primary">Primary</button>
-<button className="btn btn-secondary">Secondary</button>
-<button className="btn btn-accent">Accent</button>
-<button className="btn btn-info">Info</button>
-<button className="btn btn-success">Success</button>
-<button className="btn btn-warning">Warning</button>
-<button className="btn btn-error">Error</button>
-      <button className="btn">Default</button>
-    </>
+    <div className="flex max-w-6xl mx-auto">
+      <Routes>
+        <Route path='/' element={<HomePage/>}/>
+        <Route path='/signup' element={<SignupPage/>}/>
+        <Route path='/login' element={<LoginPage/>}/>
+      </Routes>
+    </div>
+
   )
 }
 export default App;
