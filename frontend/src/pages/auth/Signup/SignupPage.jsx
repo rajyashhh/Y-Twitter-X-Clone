@@ -101,6 +101,7 @@ const SignUpPage = () => {
 					<Link to='/login'>
 						<button className='btn rounded-full btn-primary text-white btn-outline w-full'>Sign in</button>
 					</Link>
+					<button className="btn rounded-full">Trial Button</button>
 				</div>
 			</div>
 		</div>
