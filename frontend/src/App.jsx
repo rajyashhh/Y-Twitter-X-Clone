@@ -3,6 +3,7 @@ import {Route, Routes} from "react-router-dom";
 import HomePage from "./pages/home/HomePage";
 import SignupPage from "./pages/auth/signup/SignupPage";
 import LoginPage from "./pages/auth/Login/LoginPage";
+import TrialPage from "./pages/profile/TrialPAge";
 
 import { Toaster } from "react-hot-toast";
 import NotificationPage from "./pages/notification/NotificationPage";
@@ -21,6 +22,7 @@ function App(){
         <Route path='/login' element={<LoginPage/>}/>
         <Route path='/notifications' element={<NotificationPage/>}/>
         <Route path='/profile/:username' element={<ProfilePage/>}/>
+        <Route path='/trial' element={<TrialPage/>}/>
       </Routes>
       <RightPanel/>
       
