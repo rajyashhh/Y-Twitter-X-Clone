@@ -6,6 +6,7 @@ const TrialPage = () => {
 	return (
 		<>
 			<MacbookScroll/>
+            <MacbookScroll/>
 		</>
 	);
 };
