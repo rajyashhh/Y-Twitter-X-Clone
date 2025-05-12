@@ -30,8 +30,20 @@ const SignUpPage = () => {
 				} );
 				
 				const data = await res.json();
-				if(!res.ok) throw new Error(data.error);
-				if(data.error) throw new Error("Something went wrong");
+
+				if (!res.ok) {
+					let message = "Something went wrong";
+
+					if (data.error && typeof data.error === "string") {
+						message = data.error;
+					} else if (data.error && typeof data.error === "object") {
+						message = data.error?.issues?.[0]?.message || JSON.stringify(data.error);
+					} else if (data.message) {
+						message = data.message;
+					}
+
+					throw new Error(message);
+				}
 				console.log(data);
 				return data;
 
