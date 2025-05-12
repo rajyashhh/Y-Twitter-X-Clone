@@ -5,13 +5,52 @@ import XSvg from "../../../components/svgs/X";
 
 import { MdOutlineMail } from "react-icons/md";
 import { MdPassword } from "react-icons/md";
+import {useMutation} from '@tanstack/react-query'
 
 const LoginPage = () => {
 	const [formData, setFormData] = useState({
 		username: "",
 		password: "",
 	});
+	const {mutate, isError, isPending, error} = useMutation({
+		mutationFn: async ({username,password}) => { 
+			try {
+				const res = await fetch("/api/auth/login", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+		
+					},
+					body : JSON.stringify({username, password}),
+				} );
+				
+				const data = await res.json();
 
+				if (!res.ok) {
+					let message = "Something went wrong";
+
+					if (data.error && typeof data.error === "string") {
+						message = data.error;
+					} else if (data.error && typeof data.error === "object") {
+						message = data.error?.issues?.[0]?.message || JSON.stringify(data.error);
+					} else if (data.message) {
+						message = data.message;
+					}
+
+					throw new Error(message);
+				}
+				console.log(data);
+				return data;
+
+			} catch (error) {
+				console.log(error);
+				throw error;
+			}
+		},
+		onSuccess: ()=> {
+			toast.success("Login Successful!")
+		}
+	});
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		console.log(formData);
@@ -21,7 +60,6 @@ const LoginPage = () => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
 	};
 
-	const isError = false;
 
 	return (
 		<div className='max-w-screen-xl mx-auto flex h-screen'>
