@@ -1,6 +1,5 @@
-Here’s a simple and clear README page for your Twitter clone project named Y:
 
-⸻
+
 
 🐦 Y – A X CLone (Formerly Twitter)
 
@@ -23,10 +22,10 @@ Y is a full-featured Twitter clone that replicates all the core functionalities 
 
 
 
-	•	Frontend: React / Next.js / Tailwind CSS
-	•	Backend: Node.js / Express / MongoDB / Firebase Auth / Supabase / Prisma (replace accordingly)
-	•	Authentication: JWT / OAuth (e.g., Google, GitHub if implemented)
-	•	Database: MongoDB / PostgreSQL
+	•	Frontend: React/ Tailwind CSS/ Daisy UI
+	•	Backend: Node.js / Express / MongoDB / Mongoose
+	•	Authentication: JWT 
+	•	Database: MongoDB 
 	•	Hosting: Vercel / Render / Netlify / Railway
 
 💡 Getting Started
@@ -71,7 +70,7 @@ This project helped me understand:
 
 🧑‍💻 Author
 
-Yashraj Singh
+Yash Raj Singh
 LinkedIn • GitHub
 
 ⸻
