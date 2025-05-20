@@ -89,7 +89,7 @@ const SignUpPage = () => {
 						/>
 					</label>
 					<div className='flex gap-4 flex-wrap'>
-						<label className='input input-bordered rounded flex items-center gap-2 flex-1'>
+						<label className='input input-bordered rounded flex items-center gap-2 '>
 							<FaUser />
 							<input
 								type='text'
@@ -100,7 +100,7 @@ const SignUpPage = () => {
 								value={formData.username}
 							/>
 						</label>
-						<label className='input input-bordered rounded flex items-center gap-2 flex-1'>
+						<label className='input input-bordered rounded flex items-center gap-2'>
 							<MdDriveFileRenameOutline />
 							<input
 								type='text'

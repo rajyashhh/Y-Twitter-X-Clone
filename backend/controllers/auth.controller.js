@@ -77,8 +77,8 @@ const signup = async (req, res) => {
 };
 const login = async (req, res) => {
     try{
-        const { email, password}=req.body;
-        const user = await User.findOne({email});
+        const { username, password}=req.body;
+        const user = await User.findOne({username});
         if(!user){
             res.json({
                 message : "No user found with this email ID"
@@ -99,7 +99,7 @@ const login = async (req, res) => {
             coverImg : user.coverImg
             })
         }else{
-            res.json({
+            res.status(401).json({
                 message : "Password does not match"
             })
         }
