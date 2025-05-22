@@ -27,6 +27,9 @@ const Sidebar = () => {
 		},
 		onSuccess: ()=>{
 			toast.success("Logout successful");
+		},
+		onError: () => {
+			toast.error("Logout Failed!")
 		}
 	})
 	const data = {
@@ -88,7 +91,7 @@ const Sidebar = () => {
 							</div>
 							<BiLogOut className='w-5 h-5 cursor-pointer' 
 							onClick={(e)=>{
-								e.preventDefault
+								e.preventDefault();
 								logout()}} />
 						</div>
 					</Link>

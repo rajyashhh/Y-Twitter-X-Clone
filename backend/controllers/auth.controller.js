@@ -80,8 +80,8 @@ const login = async (req, res) => {
         const { username, password}=req.body;
         const user = await User.findOne({username});
         if(!user){
-            res.json({
-                message : "No user found with this email ID"
+            res.status(403).json({
+                message : "No user found with this username."
             })
             return;
         }
