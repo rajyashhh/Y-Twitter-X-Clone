@@ -5,7 +5,7 @@ import XSvg from "../../../components/svgs/X";
 
 import { MdOutlineMail } from "react-icons/md";
 import { MdPassword } from "react-icons/md";
-import {useMutation} from '@tanstack/react-query'
+import {useMutation, useQueryClient} from '@tanstack/react-query'
 import {toast} from "react-hot-toast";
 
 const LoginPage = () => {
@@ -13,6 +13,7 @@ const LoginPage = () => {
 		username: "",
 		password: "",
 	});
+	const queryClient = useQueryClient();
 	const {mutate:loginMutation, isError, isPending, error} = useMutation({
 		mutationFn: async ({username,password}) => { 
 			try {
@@ -49,7 +50,8 @@ const LoginPage = () => {
 			}
 		},
 		onSuccess: ()=> {
-			toast.success("Login Successful!")
+			toast.success("Login Successful!");
+			queryClient.invalidateQueries({queryKey: ["authUser"]});
 		}
 	});
 	const handleSubmit = (e) => {
@@ -63,7 +65,7 @@ const LoginPage = () => {
 
 
 	return (
-		<div className='max-w-screen-xl mx-auto flex h-screen'>
+		<div className='max-w-screen-xl mx-auto flex h-screen px-10'>
 			<div className='flex-1 hidden lg:flex items-center  justify-center items-center'>
 				<XSvg className='lg:w-2/3 fill-white' />
 			</div>

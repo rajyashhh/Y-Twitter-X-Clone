@@ -13,7 +13,7 @@ import RightPanel from "./components/common/RightPanel";
 import { useQuery } from "@tanstack/react-query";
 import LoadingSpinner from "./components/common/LoadingSpinner";
 function App(){
-  const {data:authUser, isLoading, error, isError} = useQuery({
+  const {data:authUser, isLoading} = useQuery({
     queryKey: ['authUser'],
     queryFn: async() => {
       try {
@@ -27,7 +27,8 @@ function App(){
       } catch (error) {
         throw new Error(error);
       }
-    }
+    },
+    retry:false
   })
   if(isLoading){
     return (
@@ -40,7 +41,8 @@ function App(){
     <div className="flex max-w-5xl mx-auto">
       
       <Toaster/>
-      <Sidebar/>
+      {authUser && <Sidebar/> }
+      
       <Routes>
         <Route path='/' element={authUser ? <HomePage/> : <Navigate to="/login" />}/>
         <Route path='/signup' element={!authUser?<SignupPage/>:<Navigate to="/"/>}/>
@@ -49,7 +51,8 @@ function App(){
         <Route path='/profile/:username' element={authUser ? <ProfilePage/> : <Navigate to = "/login"/>}/>
         
       </Routes>
-      <RightPanel/>
+      {authUser && <RightPanel/> }
+      
       
 
     </div>

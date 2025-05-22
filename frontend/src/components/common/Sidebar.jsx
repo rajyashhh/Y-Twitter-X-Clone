@@ -5,12 +5,12 @@ import { IoNotifications } from "react-icons/io5";
 import { FaUser } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { BiLogOut } from "react-icons/bi";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {toast} from "react-hot-toast";
 
 const Sidebar = () => {
 	
-
+	const queryClient = useQueryClient();
 	const {mutate: logout, isError, isPending, error} =useMutation({
 		mutationFn: async ()=>{
 			try {
@@ -18,6 +18,7 @@ const Sidebar = () => {
 					method: "POST"
 				} );
 				const data = await res.json();
+				if(data.error) return null;  
 				if(!res.ok){
 					throw new Error(data.error || "Something went wrong");
 				}
@@ -27,6 +28,8 @@ const Sidebar = () => {
 		},
 		onSuccess: ()=>{
 			toast.success("Logout successful");
+			queryClient.setQueryData(["authUser"], null);
+			
 		},
 		onError: () => {
 			toast.error("Logout Failed!")
