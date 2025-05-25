@@ -87,7 +87,11 @@ const commentOnPost = async (req,res)=>{
         const comment = {user: userId, text};
         post.comments.push(comment);
         await post.save();
-        res.status(200).json(post);
+        const updatedPost = await Post.findById(postId).populate('comments.user', 'username name');
+        const updatedComments = updatedPost.comments;
+        
+        res.status(200).json(updatedComments);
+
     } catch (error) {
         console.log("Error in commentOnPost controller: ", error.message);
         res.status(500).json({
