@@ -81,13 +81,13 @@ const commentOnPost = async (req,res)=>{
         const post = await Post.findById(postId);
         if(!post){
             return res.status(404).json({
-                error : "POst not found"
+                error : "Post not found"
             })
         }
         const comment = {user: userId, text};
         post.comments.push(comment);
         await post.save();
-        const updatedPost = await Post.findById(postId).populate('comments.user', 'username name');
+        const updatedPost = await Post.findById(postId).populate('comments.user', 'username fullName');
         const updatedComments = updatedPost.comments;
         
         res.status(200).json(updatedComments);
