@@ -27,6 +27,8 @@ const ProfilePage = () => {
 	const {data:user, isLoading} = useQuery({
 		queryKey:["userProfile"],
 		queryFn: async()=>{
+
+			//this will fetch username from params
 			try {
 				const res = await fetch(`/api/user/profile/${username}`);
 				const data = await res.json();
