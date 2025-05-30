@@ -45,6 +45,7 @@ const ProfilePage = () => {
 	const handleImgChange = (e, state) => {
 		const file = e.target.files[0];
 		if (file) {
+			// this will update cover image and profile image
 			const reader = new FileReader();
 			reader.onload = () => {
 				state === "coverImg" && setCoverImg(reader.result);
@@ -155,7 +156,7 @@ const ProfilePage = () => {
 													rel='noreferrer'
 													className='text-sm text-blue-500 hover:underline'
 												>
-													youtube.com/@asaprogrammer_
+													
 												</a>
 											</>
 										</div>
