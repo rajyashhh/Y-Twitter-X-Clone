@@ -17,7 +17,7 @@ function App(){
     queryKey: ['authUser'],
     queryFn: async() => {
       try {
-        const res = await fetch("api/auth/me");
+        const res = await fetch("/api/auth/me");
         const data = await res.json();
         if(!res.ok || data.error){
           throw new Error(data.error || "Something went wrong")
@@ -28,7 +28,11 @@ function App(){
         throw new Error(error);
       }
     },
-    retry:false
+    retry:false,
+    refetchOnWindowFocus: false, // Add this
+    refetchOnMount: true,        // Add this
+    refetchOnReconnect: true,    // Add this
+    staleTime: 5 * 60 * 1000,   // Keep data fresh for 5 minutes
   })
   if(isLoading){
     return (

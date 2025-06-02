@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import Posts from "../../components/common/Posts";
@@ -12,6 +12,7 @@ import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
 import { useQuery } from "@tanstack/react-query";
+import { formatMemberSinceDate } from "../../utils/date";
 
 const ProfilePage = () => {
 	const [coverImg, setCoverImg] = useState(null);
@@ -22,9 +23,10 @@ const ProfilePage = () => {
 	const profileImgRef = useRef(null);
 
 	const {username} = useParams();
-	const isMyProfile = true;
+	
+	
 
-	const {data:user, isLoading} = useQuery({
+	const {data:user, isLoading, refetch, isRefetching} = useQuery({
 		queryKey:["userProfile"],
 		queryFn: async()=>{
 
@@ -41,7 +43,8 @@ const ProfilePage = () => {
 			}
 		}
 	})
-
+	const isMyProfile = user?.username === username;
+	const memberSinceDate = formatMemberSinceDate(user?.createdAt);
 	const handleImgChange = (e, state) => {
 		const file = e.target.files[0];
 		if (file) {
@@ -55,14 +58,18 @@ const ProfilePage = () => {
 		}
 	};
 
+	useEffect(()=>{
+		refetch()
+	},[username, refetch])
+
 	return (
 		<>
 			<div className='flex-[4_4_0]  border-r border-gray-700 min-h-screen '>
 				{/* HEADER */}
-				{isLoading && <ProfileHeaderSkeleton />}
-				{!isLoading && !user && <p className='text-center text-lg mt-4'>User not found</p>}
+				{(isLoading || isRefetching) && <ProfileHeaderSkeleton />}
+				{!isLoading && !isRefetching && !user && <p className='text-center text-lg mt-4'>User not found</p>}
 				<div className='flex flex-col'>
-					{!isLoading && user && (
+					{!isLoading && !isRefetching && user && (
 						<>
 							<div className='flex gap-10 px-4 py-2 items-center'>
 								<Link to='/'>
@@ -163,7 +170,11 @@ const ProfilePage = () => {
 									)}
 									<div className='flex gap-2 items-center'>
 										<IoCalendarOutline className='w-4 h-4 text-slate-500' />
-										<span className='text-sm text-slate-500'>Joined July 2021</span>
+										<span className='text-sm text-slate-500'>
+											{
+												memberSinceDate
+											}
+										</span>
 									</div>
 								</div>
 								<div className='flex gap-2'>
