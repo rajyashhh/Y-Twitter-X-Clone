@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon backend/server.js",
-    "start": "node backend/server.js "
+    "dev": "NODE_ENV=development nodemon backend/server.js",
+    "start": "NODE_ENV=production node backend/server.js ",
+    "build": "npm install && npm install --prefix frontend && npm run build --prefix frontend"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",
     "motion": "^12.10.1",
+    "path-to-regexp": "^8.2.0",
     "react-hot-toast": "^2.5.2",
     "tailwind-merge": "^3.2.0",
     "zod": "^3.24.2"

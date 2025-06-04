@@ -1,3 +1,4 @@
+import path from "path";
 import express from "express";
 import authRoutes from "./routes/auth.route.js"
 import userRoutes from "./routes/user.route.js"
@@ -18,7 +19,7 @@ cloudinary.config({
 })
 
 const PORT = process.env.PORT;
-
+const __dirname = path.resolve();
 
 const corsOptions = {
     // methods : ["GET","POST"],
@@ -39,6 +40,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/notifications', notificationRoutes)
+
+
+if (process.env.NODE_ENV === "production"){
+    app.use(express.static(path.join(__dirname, "/frontend/dist")))
+    app.get("*", (req,res) => {
+        res.sendFile(path.resolve(__dirname, "frontend", "build", "index.html"));
+    })
+}
 app.listen(PORT,()=>{
     console.log(`Server is running on port ${PORT}`);
     connectMongoDB();
