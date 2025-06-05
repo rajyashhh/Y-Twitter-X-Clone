@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
 // import dotenv from "dotenv"
 // dotenv.config(); 
@@ -11,6 +12,12 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     react()],
+  resolve: {
+    extensions: ['.js', '.jsx', '.json'],
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  },
   server:{
     port: 3000,
     proxy:{
