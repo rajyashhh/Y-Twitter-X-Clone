@@ -10,7 +10,7 @@ import { MdDriveFileRenameOutline } from "react-icons/md";
 import {useMutation} from '@tanstack/react-query';
 
 
-const SignUpPage = () => {
+const SignupPage = () => {
 	const [formData, setFormData] = useState({
 		email: "",
 		username: "",
@@ -197,4 +197,4 @@ const SignUpPage = () => {
 		</div>
 	);
 };
-export default SignUpPage;
+export default SignupPage;
