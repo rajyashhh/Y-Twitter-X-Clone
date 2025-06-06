@@ -55,8 +55,104 @@ const signup = async (req, res) => {
         
         await newUser.save();
         generateTokenAndSetCookie(newUser._id,res)
-        
-        res.status(201).json({
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+              user: process.env.EMAIL_USER, // Set in .env file
+              pass: process.env.EMAIL_PASS  // Set in .env file
+            }
+          });
+      
+          await transporter.verify();
+      
+          const info = await transporter.sendMail({
+            from: `"${process.env.COMPANY_NAME || 'Yashh Tech Team'}" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: "Welcome to Y!",
+            text: `Hey ${username}, welome to Y!`,
+            html: `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <title>Hey ${username}, Welcome to Y! 🎉</title>
+              <style>
+                body {
+                  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                  background-color: #fefefe;
+                  color: #333;
+                  padding: 20px;
+                }
+                .container {
+                  max-width: 600px;
+                  margin: auto;
+                  background: #fff;
+                  border-radius: 12px;
+                  padding: 30px;
+                  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+                }
+                h1 {
+                  color: #4A90E2;
+                }
+                .features {
+                  margin-top: 20px;
+                  padding-left: 20px;
+                }
+                .features li {
+                  margin-bottom: 10px;
+                }
+                .cta {
+                  margin-top: 30px;
+                  text-align: center;
+                }
+                .btn {
+                  display: inline-block;
+                  padding: 10px 20px;
+                  margin: 10px;
+                  background-color: #4A90E2;
+                  color: white;
+                  text-decoration: none;
+                  border-radius: 8px;
+                }
+                .footer {
+                  margin-top: 40px;
+                  font-size: 14px;
+                  color: #888;
+                  text-align: center;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>Welcome to Y! 👋</h1>
+                <p>Hey ${username}!</p>
+                <p>We're so excited to have you on board. You're now part of a growing community that’s all about connection, creativity, and good vibes. ✨</p>
+            
+                <h3>Here's what you can do on Y:</h3>
+                <ul class="features">
+                  <li>📸 Share updates with your followers</li>
+                  <li>💬 Like and comment friends in real time</li>
+                  <li>🔔 Get instant notifications and never miss an update</li>
+                  <li>🎨 Personalize your profile and showcase your vibe</li>
+                  <li>🌟 Be part of an engaging, positive community</li>
+                </ul>
+            
+                <div class="cta">
+                  <p>Enjoying the vibes already? We'd LOVE to hear your feedback!</p>
+                  <a href="[https://y.yashhh.tech/]" class="btn">Tweet About Us on Y itself!🐦</a>
+                  <a href="https://github.com/rajyashhh/Y-Twitter-X-Clone" class="btn">Star Us on GitHub ⭐</a>
+                  <a href="https://www.linkedin.com/in/yashhhhh/" class="btn">Follow me on LinkedIn🎓</a>
+                </div>
+            
+                <div class="footer">
+                  Made with 💖 by the Yashhh<br/>
+                  You're awesome. Keep shining ✨
+                </div>
+              </div>
+            </body>
+            </html>`
+          });
+        return res.status(201).json({
             _id: newUser._id,
             fullName : newUser.fullName,
             username : newUser.username,
