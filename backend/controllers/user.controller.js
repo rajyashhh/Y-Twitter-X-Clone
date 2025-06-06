@@ -42,6 +42,9 @@ const followUnfollowUser = async (req,res) => {
             })
         }
 
+        console.log("Current user:", currentUser._id);
+        console.log("User to modify:", userToModify._id);
+        console.log("Current followers:", userToModify.followers);
 
         const isFollowing = currentUser.following.includes(id);
         if(isFollowing){
@@ -52,6 +55,7 @@ const followUnfollowUser = async (req,res) => {
             await User.findByIdAndUpdate(req.user._id, {
                 $pull: {following: id}
             });
+            console.log("Unfollowed. New followers:", (await User.findById(id)).followers);
             res.status(200).json({
                 message: "User unfollowed successfully"
             })
@@ -66,8 +70,9 @@ const followUnfollowUser = async (req,res) => {
                 from: req.user._id,
                 to: userToModify._id
             })
-             await newNotification.save();
-             res.status(200).json({
+            await newNotification.save();
+            console.log("Followed. New followers:", (await User.findById(id)).followers);
+            res.status(200).json({
                 message: "User followed successfully"
             })
         }
@@ -163,4 +168,45 @@ const updateUser = async(req,res) => {
         return res.status(500).json({ error: "Server error" });
     }
 }
+
+export const getFollowers = async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    // First get the user to find their followers array
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Then find all users whose IDs are in the followers array
+    const followers = await User.find({
+      _id: { $in: user.followers }
+    }).select("-password");
+
+    res.status(200).json(followers);
+  } catch (error) {
+    console.log("Error in getFollowers controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getFollowing = async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    // First get the user to find their following array
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Then find all users whose IDs are in the following array
+    const following = await User.find({
+      _id: { $in: user.following }
+    }).select("-password");
+
+    res.status(200).json(following);
+  } catch (error) {
+    console.log("Error in getFollowing controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export {getUserProfile, followUnfollowUser, getSuggestedUser, updateUser};

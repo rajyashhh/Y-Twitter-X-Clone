@@ -1,12 +1,16 @@
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 import useFollow from "../../hooks/userfollow";
-
 import RightPanelSkeleton from "../skeletons/RightPanelSkeleton";
 import LoadingSpinner from "./LoadingSpinner";
+import { useState } from "react";
 
 const RightPanel = () => {
+	const { username } = useParams();
+	const queryClient = useQueryClient();
+	const [loadingStates, setLoadingStates] = useState({});
+
 	const {data:suggestedUsers, isLoading} = useQuery({
 		queryKey: ["suggestedUsers"],
 		queryFn: async ()=>{
@@ -15,7 +19,6 @@ const RightPanel = () => {
 				const data = await res.json();
 				if(!res.ok){
 					throw new Error(data.message || "Something went wrong!");
-
 				}
 				return data;
 			} catch (error) {
@@ -24,7 +27,25 @@ const RightPanel = () => {
 		}
 	});
 
-	const {follow, isPending} = useFollow();
+	const {follow} = useFollow();
+
+	const handleFollow = async (userId) => {
+		try {
+			setLoadingStates(prev => ({ ...prev, [userId]: true }));
+			await follow(userId);
+			// Wait for the follow action to complete before invalidating queries
+			await Promise.all([
+				queryClient.invalidateQueries(["suggestedUsers"]),
+				queryClient.invalidateQueries(["following", username]),
+				queryClient.invalidateQueries(["userProfile", username])
+			]);
+		} catch (error) {
+			console.error("Error following user:", error);
+		} finally {
+			setLoadingStates(prev => ({ ...prev, [userId]: false }));
+		}
+	};
+
 	if(suggestedUsers?.length === 0) return <div className="md:w-64 w-0"></div>
 
 	return (
@@ -66,11 +87,10 @@ const RightPanel = () => {
 										className='btn bg-white text-black hover:bg-white hover:opacity-90 rounded-full btn-sm'
 										onClick={(e) => {
 											e.preventDefault();
-											follow(user._id);
+											handleFollow(user._id);
 										}}
 									>
-										{isPending ? <LoadingSpinner size="sm"/> : "Follow"}
-										
+										{loadingStates[user._id] ? <LoadingSpinner size="sm"/> : "Follow"}
 									</button>
 								</div>
 							</Link>

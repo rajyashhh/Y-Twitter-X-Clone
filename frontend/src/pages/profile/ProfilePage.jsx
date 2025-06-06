@@ -190,14 +190,14 @@ const ProfilePage = () => {
 									</div>
 								</div>
 								<div className='flex gap-2'>
-									<div className='flex gap-1 items-center'>
+									<Link to={`/profile/${username}/following`} className='flex gap-1 items-center hover:underline'>
 										<span className='font-bold text-xs'>{user?.following.length}</span>
 										<span className='text-slate-500 text-xs'>Following</span>
-									</div>
-									<div className='flex gap-1 items-center'>
+									</Link>
+									<Link to={`/profile/${username}/followers`} className='flex gap-1 items-center hover:underline'>
 										<span className='font-bold text-xs'>{user?.followers.length}</span>
 										<span className='text-slate-500 text-xs'>Followers</span>
-									</div>
+									</Link>
 								</div>
 							</div>
 							<div className='flex w-full border-b border-gray-700 mt-4'>
