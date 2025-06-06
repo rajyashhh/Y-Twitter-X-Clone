@@ -18,9 +18,32 @@ const SignupPage = () => {
 		password: "",
 		otp: "",
 	});
-
 	const [otpCoolDown, setOtpCoolDown] = useState(0);
 	const [showOtpField, setShowOtpField] = useState(false);
+	const [isOtpVerified, setIsOtpVerified] = useState(false);
+	const [isOtpSent, setIsOtpSent] = useState(false);
+	const [isSendingOtp, setIsSendingOtp] = useState(false);
+	const [isEmailVerified, setIsEmailVerified] = useState(false);
+	useEffect(() => {
+		let interval;
+	
+		if (otpCoolDown > 0) {
+			interval = setInterval(() => {
+				setOtpCoolDown(prev => {
+					if (prev <= 1) {
+						clearInterval(interval);
+						return 0;
+					}
+					return prev - 1;
+				});
+			}, 1000);
+		}
+	
+		return () => clearInterval(interval);
+	}, [otpCoolDown]);
+	
+
+	
 
 
 
@@ -73,34 +96,67 @@ const SignupPage = () => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
 	};
 
-	const handleSendOtp = ()=>{
+	const handleSendOtp = async ()=>{
+		if (otpCoolDown > 0) return;
 		if (!formData.email) {
 			toast.error("Please enter your email first.");
-			return; 
+			return;
 		}
-		setShowOtpField(true);
-		setOtpCoolDown(30);
-		toast.success("OTP sent to your email id.")
-	}
-
-	const handleVerifyOtp = ()=>{
-		toast.promise(
-			saveSettings(settings),
-			 {
-			   loading: 'Verifying OTP',
-			   success: <b>Account Verified</b>,
-			   error: <b>Wrong OTP! Try again</b>,
-			 }
-		   );
-
-		useEffect(()=>{
-			let timer;
-			if (otpCoolDown>0){
-				timer = setInterval(()=>{setOtpCoolDown((prev)=>prev-1)},1000)
+		setIsSendingOtp(true);
+		try {
+			const res = await fetch("/api/auth/send-otp", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ email: formData.email }),
+			});
+	
+			const data = await res.json();
+	
+			if (!res.ok) {
+				throw new Error(data.error || "Failed to send OTP");
 			}
-			return ()=> clearInterval(timer);
-		}, [otpCoolDown])
+			setIsOtpSent(true);
+			setShowOtpField(true);
+			setOtpCoolDown(30);
+			toast.success("OTP sent to your email.");
+		} catch (err) {
+			console.error("OTP error:", err);
+			toast.error(err.message || "Something went wrong.");
+		}finally {
+			setIsSendingOtp(false); 
+		}
 	}
+
+	const handleVerifyOtp = async () => {
+		if (!formData.email || !formData.otp) {
+			toast.error("Please enter both email and OTP.");
+			return;
+		}
+	
+		toast.promise(
+			fetch("/api/auth/verify-otp", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ email: formData.email, otp: formData.otp }),
+			}).then(async (res) => {
+				const data = await res.json();
+				if (!res.ok) {
+					throw new Error(data.error || "OTP verification failed");
+				}
+				setIsOtpVerified(true);
+				setIsEmailVerified(true);
+				return data;
+			}),
+			{
+				loading: "Verifying OTP...",
+				success: "OTP Verified Successfully ✅",
+				error: "Wrong OTP! Try again ❌",
+			}
+		);
+	};
+	
 
 	return (
 		<div className='max-w-screen-xl mx-auto flex h-screen px-10'>
@@ -143,20 +199,35 @@ const SignupPage = () => {
 							className='grow'
 							placeholder='Email'
 							name='email'
+							disabled={isEmailVerified} 
+        					readOnly={isEmailVerified} 
 							onChange={handleInputChange}
 							value={formData.email}
 							/>
 						</label>
-						
-						<button
+						{!isOtpVerified && (
+							<button
 							type="button"
 							onClick={handleSendOtp} 
-							className='btn rounded-full btn-primary text-white btn-outline whitespace-nowrap'
+							className={`btn rounded-full btn-primary text-white btn-outline whitespace-nowrap ${
+								otpCoolDown > 0 ? "opacity-50 cursor-not-allowed" : ""
+							}`}
+							
 							>
-							Send OTP
+							{isSendingOtp
+								? "Sending OTP..."
+								: otpCoolDown > 0
+								? `Resend in ${otpCoolDown}s`
+								: isOtpSent
+								? "Resend OTP"
+								: "Send OTP"}
 						</button>
+						)}
+						
 					</div>
 					{showOtpField && (
+						
+						<div className="flex items-center gap-4">
 						<label className='input input-bordered rounded flex items-center gap-2 w-full mt-4'>
 							<MdPassword />
 							<input
@@ -168,6 +239,17 @@ const SignupPage = () => {
 							value={formData.otp}
 							/>
 						</label>
+						<button
+							type="button"
+							onClick={handleVerifyOtp}
+							disabled={isOtpVerified}
+							className={`btn rounded-full btn-primary text-white ${isOtpVerified ? "cursor-default opacity-80" : ""}`}
+						>
+							{isOtpVerified ? "Verified ✅" : "Verify OTP"}
+						</button>
+						</div>
+						
+						
 					)}
 					
 					<label className='input input-bordered rounded flex items-center gap-2'>
@@ -181,7 +263,7 @@ const SignupPage = () => {
 							value={formData.password}
 						/>
 					</label>
-					<button className='btn rounded-full btn-primary text-white'>
+					<button className='btn rounded-full btn-primary text-white' disabled={!isOtpVerified}>
 						{isPending ? "Loading...": "Sign Up"}
 					</button>
 					{isError && <p className='text-red-500'>{error.message}</p>}
