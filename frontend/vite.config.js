@@ -13,10 +13,17 @@ export default defineConfig({
     tailwindcss(),
     react()],
   resolve: {
-    extensions: ['.js', '.jsx', '.json'],
+    extensions: ['.mjs', '.js', '.jsx', '.json'],
     alias: {
       '@': path.resolve(__dirname, './src')
     }
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+      },
+    },
   },
   server:{
     port: 3000,
