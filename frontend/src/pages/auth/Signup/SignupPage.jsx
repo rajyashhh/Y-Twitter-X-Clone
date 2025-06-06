@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-
+import { useNavigate } from 'react-router-dom';
 import XSvg from "../../../components/svgs/X.jsx";
 import { toast } from 'react-hot-toast';
 import { MdOutlineMail } from "react-icons/md";
@@ -24,6 +24,7 @@ const SignupPage = () => {
 	const [isOtpSent, setIsOtpSent] = useState(false);
 	const [isSendingOtp, setIsSendingOtp] = useState(false);
 	const [isEmailVerified, setIsEmailVerified] = useState(false);
+	const navigate = useNavigate();
 	useEffect(() => {
 		let interval;
 	
@@ -83,7 +84,9 @@ const SignupPage = () => {
 			}
 		},
 		onSuccess: ()=> {
+			queryClient.invalidateQueries({ queryKey: ["authUser"] }); 
 			toast.success("Account created successfully!")
+			navigate("/");
 		}
 	});
 
