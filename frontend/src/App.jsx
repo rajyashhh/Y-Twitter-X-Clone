@@ -2,7 +2,7 @@ import {Navigate, Route, Routes} from "react-router-dom";
 import HomePage from "./pages/home/HomePage.jsx";
 import SignupPage from "./pages/auth/Signup/SignupPage.jsx";
 import LoginPage from "./pages/auth/Login/LoginPage.jsx";
-
+import SearchPage from "./pages/home/SearchPage.jsx";
 
 import { Toaster } from "react-hot-toast";
 import NotificationPage from "./pages/notification/NotificationPage";
@@ -69,6 +69,7 @@ function App(){
         <Route path='/profile/:username' element={authUser ? <ProfilePage/> : <Navigate to = "/login"/>}/>
         <Route path='/profile/:username/followers' element={authUser ? <FollowersPage/> : <Navigate to = "/login"/>}/>
         <Route path='/profile/:username/following' element={authUser ? <FollowingPage/> : <Navigate to = "/login"/>}/>
+        <Route path="/search" element={authUser ? <SearchPage authUser={authUser} /> : <Navigate to="/login" />} />
       </Routes>
       {authUser && <RightPanel/> }
       

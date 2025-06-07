@@ -24,6 +24,7 @@ const SignupPage = () => {
 	const [isOtpSent, setIsOtpSent] = useState(false);
 	const [isSendingOtp, setIsSendingOtp] = useState(false);
 	const [isEmailVerified, setIsEmailVerified] = useState(false);
+	const [usernameError, setUsernameError] = useState("");
 	const navigate = useNavigate();
 	useEffect(() => {
 		let interval;
@@ -92,11 +93,29 @@ const SignupPage = () => {
 
 	const handleSubmit = (e) => {
 		e.preventDefault(); // page won't reload
-		mutate(formData);
+		// Trim username and fullName before submitting
+		const trimmedData = {
+			...formData,
+			username: formData.username.trim(),
+			fullName: formData.fullName.trim(),
+		};
+		// Prevent submit if username error is present
+		if (usernameError) {
+			return;
+		}
+		mutate(trimmedData);
 	};
 
 	const handleInputChange = (e) => {
-		setFormData({ ...formData, [e.target.name]: e.target.value });
+		const { name, value } = e.target;
+		setFormData({ ...formData, [name]: value });
+		if (name === "username") {
+			if (/\s/.test(value)) {
+				setUsernameError("Username cannot contain spaces.");
+			} else {
+				setUsernameError("");
+			}
+		}
 	};
 
 	const handleSendOtp = async ()=>{
@@ -182,6 +201,9 @@ const SignupPage = () => {
 								value={formData.username}
 							/>
 						</label>
+						{/* Username restriction note */}
+						{/* <p className='text-xs text-gray-400 ml-2 mb-2'>Username cannot contain spaces.</p> */}
+						{usernameError && <p className='text-xs text-red-500 ml-2 mb-2'>{usernameError}</p>}
 						<label className='input input-bordered rounded flex items-center gap-2'>
 							<MdDriveFileRenameOutline />
 							<input

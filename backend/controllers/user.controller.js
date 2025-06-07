@@ -169,7 +169,7 @@ const updateUser = async(req,res) => {
     }
 }
 
-export const getFollowers = async (req, res) => {
+const getFollowers = async (req, res) => {
   try {
     const { username } = req.params;
     
@@ -189,7 +189,7 @@ export const getFollowers = async (req, res) => {
   }
 };
 
-export const getFollowing = async (req, res) => {
+const getFollowing = async (req, res) => {
   try {
     const { username } = req.params;
     
@@ -209,4 +209,22 @@ export const getFollowing = async (req, res) => {
   }
 };
 
-export {getUserProfile, followUnfollowUser, getSuggestedUser, updateUser};
+const searchUsers = async (req, res) => {
+    try {
+        const q = req.query.q?.trim();
+        if (!q) return res.json([]);
+    
+        const regex = new RegExp(q, "i"); // case-insensitive
+    
+        const users = await User.find({
+            $or: [{ username: regex }, { fullName: regex }],
+        }).select("username fullName profileImg");
+    
+        res.json(users);
+    } catch (err) {
+        console.error("Error in searchUsers:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+}
+
+export {getUserProfile, followUnfollowUser, getSuggestedUser, updateUser, getFollowers, getFollowing, searchUsers};
