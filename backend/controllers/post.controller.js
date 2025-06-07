@@ -28,6 +28,25 @@ const createPost = async (req,res)=>{
             img
         })
         await newPost.save();
+
+        // Detect mentions and create notifications
+        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+        const mentions = text.match(mentionRegex);
+        if (mentions && mentions.length > 0) {
+            const uniqueMentions = [...new Set(mentions)]; // Get unique usernames
+            for (const mention of uniqueMentions) {
+                const mentionedUsername = mention.substring(1); // Remove @
+                const mentionedUser = await User.findOne({ username: mentionedUsername });
+                if (mentionedUser && mentionedUser._id.toString() !== userId) {
+                    await Notification.create({
+                        from: userId,
+                        to: mentionedUser._id,
+                        type: "mention",
+                    });
+                }
+            }
+        }
+
         res.status(201).json(newPost);
     } catch (error) {
         res.status(500).json({
@@ -76,7 +95,7 @@ const commentOnPost = async (req,res)=>{
         const userId = req.user._id;
 
         if(!text){
-            return res.status(400).json({error: "Post not found"})
+            return res.status(400).json({error: "Comment text is required"})
         }
         const post = await Post.findById(postId);
         if(!post){
@@ -87,6 +106,26 @@ const commentOnPost = async (req,res)=>{
         const comment = {user: userId, text};
         post.comments.push(comment);
         await post.save();
+
+        // Detect mentions in the comment and create notifications
+        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+        const mentions = text.match(mentionRegex);
+        if (mentions && mentions.length > 0) {
+            const uniqueMentions = [...new Set(mentions)]; // Get unique usernames
+            for (const mention of uniqueMentions) {
+                const mentionedUsername = mention.substring(1); // Remove @
+                const mentionedUser = await User.findOne({ username: mentionedUsername });
+                if (mentionedUser && mentionedUser._id.toString() !== userId) { // Don't notify self
+                    await Notification.create({
+                        from: userId,
+                        to: mentionedUser._id,
+                        type: "mention",
+                        // You might want to link to the post or comment itself later
+                    });
+                }
+            }
+        }
+
         const updatedPost = await Post.findById(postId).populate('comments.user', 'username fullName');
         const updatedComments = updatedPost.comments;
         

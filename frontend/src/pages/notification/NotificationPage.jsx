@@ -4,6 +4,7 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
 import { IoSettingsOutline } from "react-icons/io5";
 import { FaUser } from "react-icons/fa";
 import { FaHeart } from "react-icons/fa6";
+import { RiAtLine } from "react-icons/ri";
 import toast from "react-hot-toast";
 
 const NotificationPage = () => {
@@ -116,6 +117,7 @@ const NotificationPage = () => {
 							<div className='flex gap-2 p-4'>
 								{notification.type === "follow" && <FaUser className='w-7 h-7 text-primary' />}
 								{notification.type === "like" && <FaHeart className='w-7 h-7 text-red-500' />}
+								{notification.type === "mention" && <RiAtLine className='w-7 h-7 text-blue-500' />}
 								<Link to={`/profile/${notification.from.username}`} className='flex gap-2 items-center'>
 									<div className='avatar'>
 										<div className='w-8 rounded-full'>
@@ -127,7 +129,7 @@ const NotificationPage = () => {
 									</div>
 									<div className='flex gap-1'>
 										<span className='font-bold'>@{notification.from.username}</span>{" "}
-										{notification.type === "follow" ? "followed you" : "liked your post"}
+										{notification.type === "follow" ? "followed you" : notification.type === "like" ? "liked your post" : "mentioned you"}
 									</div>
 								</Link>
 							</div>

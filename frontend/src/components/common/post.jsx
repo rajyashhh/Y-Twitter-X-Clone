@@ -3,7 +3,7 @@ import { BiRepost } from "react-icons/bi";
 import { FaRegHeart, FaHeart } from "react-icons/fa";
 import { FaRegBookmark } from "react-icons/fa6";
 import { FaTrash } from "react-icons/fa";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {formatPostDate} from "../../utils/date/index.js"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,13 +11,81 @@ import toast from "react-hot-toast";
 import LoadingSpinner from "./LoadingSpinner.jsx";
 import { IoClose } from "react-icons/io5";
 
+// Utility function to render text with mentions as links
+const renderTextWithMentions = (text) => {
+	const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+	const parts = [];
+	let lastIndex = 0;
+
+	text.replace(mentionRegex, (match, username, offset) => {
+		// Add text before the mention
+		if (offset > lastIndex) {
+			parts.push(text.substring(lastIndex, offset));
+		}
+		// Add the mention as a Link
+		parts.push(
+			<Link key={offset} to={`/profile/${username}`} className="text-blue-500 hover:underline">
+				@{username}
+			</Link>
+		);
+		lastIndex = offset + match.length;
+		return match; // Return the match to keep replace working as expected
+	});
+
+	// Add any remaining text after the last mention
+	if (lastIndex < text.length) {
+		parts.push(text.substring(lastIndex));
+	}
+
+	return parts;
+};
+
 const Post = ({ post }) => {
 	const [comment, setComment] = useState("");
 	const [previewImg, setPreviewImg] = useState(null);
+	const [mentionQuery, setMentionQuery] = useState("");
+	const [mentionSuggestions, setMentionSuggestions] = useState([]);
+	const [showSuggestions, setShowSuggestions] = useState(false);
+
+	const textareaRef = useRef(null);
+
 	const postOwner = post.user;
 	
 	const {data:authUser} = useQuery({queryKey: ["authUser"]});
 	const queryClient = useQueryClient();
+
+	// Debounce the mention query
+	useEffect(() => {
+		const handler = setTimeout(() => {
+			if (mentionQuery) {
+				fetchMentions(mentionQuery);
+			} else {
+				setMentionSuggestions([]);
+				setShowSuggestions(false);
+			}
+		}, 300);
+
+		return () => {
+			clearTimeout(handler);
+		};
+	}, [mentionQuery]);
+
+	const fetchMentions = async (query) => {
+		try {
+			const res = await fetch(`/api/user/mentions/search?q=${query}`);
+			const data = await res.json();
+			if (!res.ok) {
+				throw new Error(data.error || "Failed to fetch mentions");
+			}
+			setMentionSuggestions(data);
+			setShowSuggestions(data.length > 0);
+		} catch (error) {
+			console.error("Error fetching mentions:", error);
+			setMentionSuggestions([]);
+			setShowSuggestions(false);
+		}
+	};
+
 	const {mutate:deletePost, isPending:isDeleting} = useMutation({
 		mutationFn: async()=>{
 			try {
@@ -120,13 +188,56 @@ const Post = ({ post }) => {
 
 	const handlePostComment = (e) => {
 		e.preventDefault();
-		if(isCommenting) return;
+		if (isCommenting) return;
+
+		// Ensure we don't show suggestions after posting
+		setShowSuggestions(false);
+		setMentionQuery("");
+		setMentionSuggestions([]);
+
 		commentPost();
 	};
 
 	const handleLikePost = () => {
 		if(isLiking) return;
 		likePost();
+	};
+
+	const handleCommentChange = (e) => {
+		const value = e.target.value;
+		setComment(value);
+
+		const atIndex = value.lastIndexOf('@');
+		if (atIndex > -1 && (value.charAt(atIndex - 1) === ' ' || atIndex === 0)) {
+			const q = value.substring(atIndex + 1);
+			setMentionQuery(q);
+			// Show suggestions only if query is not empty after @
+			setShowSuggestions(q.length > 0);
+		} else {
+			setMentionQuery("");
+			setShowSuggestions(false);
+		}
+	};
+
+	const handleSelectMention = (username) => {
+		const currentComment = comment;
+		const atIndex = currentComment.lastIndexOf('@');
+		if (atIndex > -1) {
+			const beforeAt = currentComment.substring(0, atIndex);
+			const afterAt = currentComment.substring(atIndex);
+			const newComment = beforeAt + `@${username} ` + afterAt.substring(mentionQuery.length + 1);
+			setComment(newComment);
+			setMentionQuery("");
+			setMentionSuggestions([]);
+			setShowSuggestions(false);
+			// Optionally move cursor to the end of the inserted mention
+			setTimeout(() => {
+				if (textareaRef.current) {
+					textareaRef.current.focus();
+					textareaRef.current.setSelectionRange(newComment.length, newComment.length);
+				}
+			}, 0);
+		}
 	};
 
 	return (
@@ -157,7 +268,7 @@ const Post = ({ post }) => {
 						)}
 					</div>
 					<div className='flex flex-col gap-3 overflow-hidden'>
-						<span>{post.text}</span>
+						<span>{renderTextWithMentions(post.text)}</span>
 						{post.img && (
 							<img
 								src={post.img}
@@ -204,21 +315,40 @@ const Post = ({ post }) => {
 															@{comment.user.username}
 														</span>
 													</div>
-													<div className='text-sm'>{comment.text}</div>
+													<div className='text-sm'>{renderTextWithMentions(comment.text)}</div>
 												</div>
 											</div>
 										))}
 									</div>
 									<form
-										className='flex gap-2 items-center mt-4 border-t border-gray-600 pt-2'
+										className='flex gap-2 items-center mt-4 border-t border-gray-600 pt-2 relative'
 										onSubmit={handlePostComment}
 									>
 										<textarea
-											className='textarea w-full p-1 rounded text-md resize-none border focus:outline-none  border-gray-800'
+											ref={textareaRef}
+											className='textarea w-full p-1 rounded text-md resize-none border focus:outline-none border-gray-800'
 											placeholder='Add a comment...'
 											value={comment}
-											onChange={(e) => setComment(e.target.value)}
+											onChange={handleCommentChange}
 										/>
+										{showSuggestions && mentionSuggestions.length > 0 && (
+											<div className="absolute bottom-full left-0 w-full bg-gray-800 border border-gray-700 rounded-md max-h-40 overflow-y-auto z-10">
+												{mentionSuggestions.map((user) => (
+													<div
+														key={user._id}
+														className="flex items-center gap-2 p-2 cursor-pointer hover:bg-gray-700"
+														onClick={() => handleSelectMention(user.username)}
+													>
+														<div className="avatar">
+															<div className="w-6 rounded-full">
+																<img src={user.profileImg || "/avatar-placeholder.png"} alt={user.username} />
+															</div>
+														</div>
+														<span className="font-bold text-sm">@{user.username}</span>
+													</div>
+												))}
+											</div>
+										)}
 										<button className='btn btn-primary rounded-full btn-sm text-white px-4'>
 											{isCommenting ? <LoadingSpinner size="md"/> : (
 												"Post"

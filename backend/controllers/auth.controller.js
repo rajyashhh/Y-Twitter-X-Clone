@@ -1,4 +1,3 @@
-
 import z from "zod";
 import bcrypt from "bcrypt";
 import { generateTokenAndSetCookie } from "../lib/utils/generateTokenAndSetCookie.js";
@@ -126,7 +125,7 @@ const signup = async (req, res) => {
               <div class="container">
                 <h1>Welcome to Y! 👋</h1>
                 <p>Hey ${username}!</p>
-                <p>We're so excited to have you on board. You're now part of a growing community that’s all about connection, creativity, and good vibes. ✨</p>
+                <p>We're so excited to have you on board. You're now part of a growing community that's all about connection, creativity, and good vibes. ✨</p>
             
                 <h3>Here's what you can do on Y:</h3>
                 <ul class="features">
@@ -214,20 +213,16 @@ const login = async (req, res) => {
 };
 const logout = async (req, res) => {
     try {
-        res.cookie("jwt","",{maxAge:0}),
+        res.cookie("jwt","",{maxAge:0});
         res.status(200).json({
             message:"User successfully signed out"
-        })
+        });
     } catch (error) {
-        console.log("Error in logout controller", error.message),
+        console.log("Error in logout controller", error.message);
         res.status(500).json({
             error:"Internal Server Error"
-        })
-        
+        });
     }
-    res.json({
-        message: "You hit the logout endpoint"
-    });
 };
 
 

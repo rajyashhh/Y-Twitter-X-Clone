@@ -227,4 +227,22 @@ const searchUsers = async (req, res) => {
     }
 }
 
-export {getUserProfile, followUnfollowUser, getSuggestedUser, updateUser, getFollowers, getFollowing, searchUsers};
+const searchMentions = async (req, res) => {
+    try {
+        const q = req.query.q?.trim();
+        if (!q) return res.json([]);
+    
+        const regex = new RegExp(q, "i"); // case-insensitive
+    
+        const users = await User.find({
+            $or: [{ username: regex }],
+        }).select("_id username profileImg"); // Only return necessary fields for mentions
+    
+        res.json(users);
+    } catch (err) {
+        console.error("Error in searchMentions:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+}
+
+export {getUserProfile, followUnfollowUser, getSuggestedUser, updateUser, getFollowers, getFollowing, searchUsers, searchMentions};
