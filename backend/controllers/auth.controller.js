@@ -316,6 +316,92 @@ const sendOtp = async (req, res) => {
     }
   };
 
+
+
+const sendOtpPass = async (req,res) => {
+    try {
+        const email = req.body.email?.trim();
+        const user = await User.findOne({email});
+        if(!user){
+
+            res.status(403).json({
+
+                message : "No user found with this email."
+            })
+            return;
+        }
+        if (!email) {
+          return res.status(400).json({ error: "Email is required." });
+        }
+    
+        // More robust email validation
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({ error: "Invalid email format." });
+        }
+    
+        // Check rate limiting (optional - implement based on your needs)
+        // const recentOtp = await Otp.findOne({ 
+        //   email, 
+        //   createdAt: { $gte: new Date(Date.now() - 60000) } // 1 minute cooldown
+        // });
+        // if (recentOtp) {
+        //   return res.status(429).json({ error: "Please wait before requesting another OTP." });
+        // }
+    
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const hashedOtp = await bcrypt.hash(otp, 10);
+        const expiry = new Date(Date.now() + 10 * 60 * 1000);
+    
+        await Otp.deleteMany({ email });
+        await Otp.create({
+          email,
+          code: hashedOtp,
+          expiresAt: expiry
+        });
+    
+        // Use environment variables for email configuration
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.EMAIL_USER, // Set in .env file
+            pass: process.env.EMAIL_PASS  // Set in .env file
+          }
+        });
+    
+        await transporter.verify();
+    
+        const info = await transporter.sendMail({
+          from: `"${process.env.COMPANY_NAME || 'Yashh Tech Team'}" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: "Your OTP Code to change your password at Y!",
+          text: `Your OTP is ${otp}. This code will expire in 10 minutes.`,
+          html: `
+            <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 400px; margin: auto; background-color: #f9f9f9; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+              <h2 style="color: #333;">🔐 OTP Verification</h2>
+              <p style="font-size: 16px;">Use the following code to complete your verification:</p>
+              <p style="font-size: 28px; font-weight: bold; color: #007bff;">${otp}</p>
+              <p style="font-size: 14px;">This code will expire in <strong>10 minutes</strong>.</p>
+              <p style="font-size: 12px; color: #888;">If you didn't request this, you can ignore this email.</p>
+            </div>`
+        });
+    
+        console.log("OTP sent successfully");
+    
+        return res.status(200).json({
+          message: "OTP sent successfully"
+          // Don't return messageId for security
+        });
+    
+      } catch (error) {
+        console.error("Error sending OTP:", error);
+        
+        // Don't expose internal error details
+        return res.status(500).json({ 
+          error: "Failed to send OTP. Please try again." 
+        });
+      }
+}
 const verify = async (req,res)=>{  const { email, otp } = req.body;
 
 if (!email || !otp) {
@@ -355,5 +441,34 @@ try {
 }
 };
 
+const changePassword = async (req, res) => {
+    try {
+        const { email, password } = req.body; // Expect email from client now
+        // You might want to add password validation (e.g., Zod) here too
+        if (!email || !password) {
+            return res.status(400).json({ error: "Email and new password are required." });
+        }
 
-export {signup, login, logout, getMe, verify, sendOtp};
+        // Find the user by email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Update user's password
+        user.password = hashedPassword;
+        await user.save();
+
+        // Optional: Invalidate any existing JWTs for this user if applicable
+        // For example, by updating a passwordLastChangedAt field and checking it in protectedRoute
+
+        res.status(200).json({ message: "Password updated successfully." });
+    } catch (error) {
+        console.error("Error in changePassword:", error);
+        res.status(500).json({ error: "Failed to change password. Please try again." });
+    }
+};
+export {signup, login, logout, getMe, verify, sendOtp, changePassword, sendOtpPass};

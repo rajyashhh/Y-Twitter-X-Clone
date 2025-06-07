@@ -96,6 +96,13 @@ const LoginPage = () => {
 							value={formData.password}
 						/>
 					</label>
+					<p className='text-xs text-gray-500'>
+					Don't remember your password?{' '}
+					<Link to='/forgot-password' className='text-blue-500 hover:underline'>
+						Forgot password?
+					</Link>
+					</p>
+					
 					<button className='btn rounded-full btn-primary text-white'>
 						{isPending ? "Loading..." : "Login"}</button>
 					{isError && <p className='text-red-500'>

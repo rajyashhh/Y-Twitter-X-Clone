@@ -3,7 +3,7 @@ import HomePage from "./pages/home/HomePage.jsx";
 import SignupPage from "./pages/auth/Signup/SignupPage.jsx";
 import LoginPage from "./pages/auth/Login/LoginPage.jsx";
 import SearchPage from "./pages/home/SearchPage.jsx";
-
+import ForgotPasswordPage from "./pages/auth/ForgotPassword/ForgotPassword.jsx";
 import { Toaster } from "react-hot-toast";
 import NotificationPage from "./pages/notification/NotificationPage";
 import ProfilePage from "./pages/profile/ProfilePage";
@@ -54,6 +54,8 @@ function App(){
         <Route path='/' element={authUser ? <HomePage/> : <Navigate to="/login" />}/>
         <Route path='/signup' element={!authUser?<SignupPage/>:<Navigate to="/"/>}/>
         <Route path='/login' element={authUser ?  <Navigate to="/"/>:<LoginPage/>}/>
+        <Route path='/forgot-password' element={authUser ?  <Navigate to="/"/>:<ForgotPasswordPage/>}/>
+
         <Route 
           path='/notifications' 
           element={
