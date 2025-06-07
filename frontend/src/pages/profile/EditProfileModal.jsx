@@ -1,9 +1,9 @@
-
 import { useEffect, useState } from "react";
-
 import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
+import { useNavigate } from "react-router-dom";
 
-const EditProfileModal = ({authUser}) => {
+const EditProfileModal = ({ authUser }) => {
+	const navigate = useNavigate();
 	const [formData, setFormData] = useState({
 		fullName: "",
 		username: "",
@@ -13,44 +13,65 @@ const EditProfileModal = ({authUser}) => {
 		newPassword: "",
 		currentPassword: "",
 	});
-	
-	const {updateProfile, isUpdatingProfile} = useUpdateUserProfile();
+
+	const { updateProfile, isUpdatingProfile } = useUpdateUserProfile();
+
 	const handleInputChange = (e) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
 	};
 
-
-	useEffect(()=>{
-		if(authUser){
+	useEffect(() => {
+		if (authUser) {
 			setFormData({
-				fullName : authUser.fullName,
-				username : authUser.username,
-				email : authUser.email,
-				bio : authUser.bio,
-				link : authUser.link,
-				newPassword : "",
-				currentPassword : "",
-			})
+				fullName: authUser.fullName || "",
+				username: authUser.username || "",
+				email: authUser.email || "",
+				bio: authUser.bio || "",
+				link: authUser.link || "",
+				newPassword: "",
+				currentPassword: "",
+			});
 		}
-	},[authUser])
+	}, [authUser]);
+
+	const handleSubmit = async (e) => {e.preventDefault();
+
+		const oldUsername = authUser.username;
+	
+		try {
+			const updatedUser = await updateProfile(formData); 
+	
+			setFormData((prev) => ({
+				...prev,
+				currentPassword: "",
+				newPassword: "",
+			}));
+	
+			document.getElementById("edit_profile_modal")?.close();
+	
+			// Navigate only if username changed
+			if (updatedUser?.username && updatedUser.username !== oldUsername) {
+				navigate(`/profile/${updatedUser.username}`);
+			}
+		} catch (error) {
+			// Error handling already in the hook toast
+		}
+	};
+
 	return (
 		<>
 			<button
 				className='btn btn-outline rounded-full btn-sm'
-				onClick={() => document.getElementById("edit_profile_modal").showModal()}
+				onClick={() =>
+					document.getElementById("edit_profile_modal").showModal()
+				}
 			>
 				Edit profile
 			</button>
 			<dialog id='edit_profile_modal' className='modal'>
 				<div className='modal-box border rounded-md border-gray-700 shadow-md'>
 					<h3 className='font-bold text-lg my-3'>Update Profile</h3>
-					<form
-						className='flex flex-col gap-4'
-						onSubmit={(e) => {
-							e.preventDefault();
-							updateProfile(formData);
-						}}
-					>
+					<form className='flex flex-col gap-4' onSubmit={handleSubmit}>
 						<div className='flex flex-wrap gap-2'>
 							<input
 								type='text'
@@ -112,7 +133,11 @@ const EditProfileModal = ({authUser}) => {
 							name='link'
 							onChange={handleInputChange}
 						/>
-						<button className='btn btn-primary rounded-full btn-sm text-white'>
+						<button
+							type='submit'
+							className='btn btn-primary rounded-full btn-sm text-white'
+							disabled={isUpdatingProfile}
+						>
 							{isUpdatingProfile ? "Updating..." : "Update"}
 						</button>
 					</form>
@@ -124,4 +149,5 @@ const EditProfileModal = ({authUser}) => {
 		</>
 	);
 };
+
 export default EditProfileModal;

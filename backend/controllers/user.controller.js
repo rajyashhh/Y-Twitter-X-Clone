@@ -149,7 +149,13 @@ const updateUser = async(req,res) => {
             const uploadedResponse = await cloudinary.uploader.upload(coverImg);
             coverImg = uploadedResponse.secure_url;
         }
-
+        if (username && username !== user.username) {
+			const usernameExists = await User.findOne({ username });
+			if (usernameExists) {
+				return res.status(400).json({ error: "Username already taken" });
+			}
+			user.username = username;
+		}
         user.fullName = fullName || user.fullName;
         user.email = email || user.email;
         user.bio = bio || user.bio;
