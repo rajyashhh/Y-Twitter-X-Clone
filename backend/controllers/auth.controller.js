@@ -47,13 +47,14 @@ const signup = async (req, res) => {
         fullName : fullName,
         username : username,
         email : email,
-        password : hashedPassword
+        password : hashedPassword,
+        sessionVersion: 0
     })
 
     if(newUser){
         
         await newUser.save();
-        generateTokenAndSetCookie(newUser._id,res)
+        generateTokenAndSetCookie(newUser._id, newUser.sessionVersion, res)
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
@@ -184,9 +185,9 @@ const login = async (req, res) => {
             })
             return;
         }
-        const passwordMatch = await bcrypt.compare(password, user.password) //Here used question mark so that if no password is available then, it will not crash, rather it will compare with an empty string.
+        const passwordMatch = await bcrypt.compare(password, user.password)
         if(passwordMatch){
-            generateTokenAndSetCookie(user._id, res);
+            generateTokenAndSetCookie(user._id, user.sessionVersion, res);
             res.status(200).json({
             _id: user._id,
             fullName : user.fullName,
@@ -213,14 +214,25 @@ const login = async (req, res) => {
 };
 const logout = async (req, res) => {
     try {
-        res.cookie("jwt","",{maxAge:0});
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Increment session version to invalidate all existing tokens
+        user.sessionVersion += 1;
+        await user.save();
+
+        // Clear the current session cookie
+        res.cookie("jwt", "", { maxAge: 0 });
+        
         res.status(200).json({
-            message:"User successfully signed out"
+            message: "Successfully logged out from all devices"
         });
     } catch (error) {
         console.log("Error in logout controller", error.message);
         res.status(500).json({
-            error:"Internal Server Error"
+            error: "Internal Server Error"
         });
     }
 };
@@ -471,4 +483,40 @@ const changePassword = async (req, res) => {
         res.status(500).json({ error: "Failed to change password. Please try again." });
     }
 };
-export {signup, login, logout, getMe, verify, sendOtp, changePassword, sendOtpPass};
+
+const logoutAllDevices = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Increment session version to invalidate all existing tokens
+        user.sessionVersion += 1;
+        await user.save();
+
+        // Clear the current session cookie
+        res.cookie("jwt", "", { maxAge: 0 });
+
+        res.status(200).json({
+            message: "Successfully logged out from all devices"
+        });
+    } catch (error) {
+        console.log("Error in logoutAllDevices controller", error.message);
+        res.status(500).json({
+            error: "Internal Server Error"
+        });
+    }
+};
+
+export {
+    signup,
+    login,
+    logout,
+    getMe,
+    sendOtp,
+    sendOtpPass,
+    verify,
+    changePassword,
+    logoutAllDevices
+};

@@ -44,10 +44,18 @@ const userSchema = new mongoose.Schema({
         type : String,
         default : ""
     },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
     likedPosts:[{
         type: mongoose.Schema.Types.ObjectId,
         ref:"Post"
-    }]
+    }],
+    sessionVersion: {
+        type: Number,
+        default: 0
+    }
 }, {timestamps: true})
 
 const User = mongoose.model("User", userSchema);

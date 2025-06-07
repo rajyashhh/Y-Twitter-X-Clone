@@ -3,6 +3,7 @@ import { BiRepost } from "react-icons/bi";
 import { FaRegHeart, FaHeart } from "react-icons/fa";
 import { FaRegBookmark } from "react-icons/fa6";
 import { FaTrash } from "react-icons/fa";
+import { BsCheckCircleFill } from "react-icons/bs";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {formatPostDate} from "../../utils/date/index.js"
@@ -320,6 +321,7 @@ const Post = ({ post }) => {
 						<Link to={`/profile/${postOwner.username}`} className='font-bold'>
 							{postOwner.fullName}
 						</Link>
+						{postOwner.isVerified && <BsCheckCircleFill className='text-blue-500' />}
 						<span className='text-gray-700 flex gap-1 text-sm'>
 							<Link to={`/profile/${postOwner.username}`}>@{postOwner.username}</Link>
 							<span>·</span>
