@@ -13,6 +13,8 @@ import Sidebar from "./components/common/Sidebar";
 import RightPanel from "./components/common/RightPanel";
 import { useQuery } from "@tanstack/react-query";
 import LoadingSpinner from "./components/common/LoadingSpinner";
+import ErrorBoundary from "./components/common/ErrorBoundary";
+
 function App(){
   const {data:authUser, isLoading} = useQuery({
     queryKey: ['authUser'],
@@ -52,7 +54,18 @@ function App(){
         <Route path='/' element={authUser ? <HomePage/> : <Navigate to="/login" />}/>
         <Route path='/signup' element={!authUser?<SignupPage/>:<Navigate to="/"/>}/>
         <Route path='/login' element={authUser ?  <Navigate to="/"/>:<LoginPage/>}/>
-        <Route path='/notifications' element={authUser? <NotificationPage/> : <Navigate to = "/login"/>}/>
+        <Route 
+          path='/notifications' 
+          element={
+            authUser ? (
+              <ErrorBoundary>
+                <NotificationPage/>
+              </ErrorBoundary>
+            ) : (
+              <Navigate to="/login"/>
+            )
+          }
+        />
         <Route path='/profile/:username' element={authUser ? <ProfilePage/> : <Navigate to = "/login"/>}/>
         <Route path='/profile/:username/followers' element={authUser ? <FollowersPage/> : <Navigate to = "/login"/>}/>
         <Route path='/profile/:username/following' element={authUser ? <FollowingPage/> : <Navigate to = "/login"/>}/>
