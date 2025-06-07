@@ -60,7 +60,7 @@ const renderTextWithMentions = (text) => {
 		if (currentMatch.index > lastIndex) {
 			const plainText = text.substring(lastIndex, currentMatch.index);
 			console.log("Adding plain text:", plainText);
-			parts.push(<span key={`text-${keyCounter++}`}>{plainText}</span>);
+			parts.push(<span key={`text-${keyCounter++}`} className="whitespace-pre-wrap">{plainText}</span>);
 		}
 
 		// Add the matched element
@@ -100,7 +100,7 @@ const renderTextWithMentions = (text) => {
 	if (lastIndex < text.length) {
 		const remainingText = text.substring(lastIndex);
 		console.log("Adding remaining text:", remainingText);
-		parts.push(<span key={`text-${keyCounter++}`}>{remainingText}</span>);
+		parts.push(<span key={`text-${keyCounter++}`} className="whitespace-pre-wrap">{remainingText}</span>);
 	}
 
 	console.log("Final parts array:", parts);
