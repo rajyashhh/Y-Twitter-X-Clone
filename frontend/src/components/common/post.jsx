@@ -11,32 +11,99 @@ import toast from "react-hot-toast";
 import LoadingSpinner from "./LoadingSpinner.jsx";
 import { IoClose } from "react-icons/io5";
 
-// Utility function to render text with mentions as links
+// Utility function to render text with mentions and links
 const renderTextWithMentions = (text) => {
+	console.log("Input text for renderTextWithMentions:", text);
 	const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+	// Refined regex to include URLs without http/https, like example.com or www.example.com
+	const urlRegex = /\b((https?:\/\/|www\.)?\S+\.\S{2,}(?:\/\S*)*)\b/gi;
+
 	const parts = [];
 	let lastIndex = 0;
+	let keyCounter = 0;
 
-	text.replace(mentionRegex, (match, username, offset) => {
-		// Add text before the mention
-		if (offset > lastIndex) {
-			parts.push(text.substring(lastIndex, offset));
+	const findNextMatch = () => {
+		// Reset lastIndex for each regex before searching to ensure proper behavior
+		mentionRegex.lastIndex = lastIndex;
+		urlRegex.lastIndex = lastIndex;
+
+		const nextMention = mentionRegex.exec(text);
+		const nextUrl = urlRegex.exec(text);
+
+		let nextMatch = null;
+
+		if (nextMention && (!nextUrl || nextMention.index < nextUrl.index)) {
+			nextMatch = {
+				type: 'mention',
+				value: nextMention[0],
+				captured: nextMention[1],
+				index: nextMention.index,
+				length: nextMention[0].length,
+			};
+		} else if (nextUrl) {
+			nextMatch = {
+				type: 'url',
+				value: nextUrl[0],
+				captured: nextUrl[0],
+				index: nextUrl.index,
+				length: nextUrl[0].length,
+			};
 		}
-		// Add the mention as a Link
-		parts.push(
-			<Link key={offset} to={`/profile/${username}`} className="text-blue-500 hover:underline">
-				@{username}
-			</Link>
-		);
-		lastIndex = offset + match.length;
-		return match; // Return the match to keep replace working as expected
-	});
 
-	// Add any remaining text after the last mention
-	if (lastIndex < text.length) {
-		parts.push(text.substring(lastIndex));
+		return nextMatch;
+	};
+
+	let currentMatch;
+	while ((currentMatch = findNextMatch()) !== null) {
+		console.log("Processing match:", currentMatch);
+		// Add plain text before the current match
+		if (currentMatch.index > lastIndex) {
+			const plainText = text.substring(lastIndex, currentMatch.index);
+			console.log("Adding plain text:", plainText);
+			parts.push(<span key={`text-${keyCounter++}`}>{plainText}</span>);
+		}
+
+		// Add the matched element
+		if (currentMatch.type === 'mention') {
+			console.log("Adding mention link:", currentMatch.value);
+			parts.push(
+				<Link key={`mention-${keyCounter++}`} to={`/profile/${currentMatch.captured}`} className="text-blue-500 hover:underline">
+					{currentMatch.value}
+				</Link>
+			);
+		} else if (currentMatch.type === 'url') {
+			console.log("Adding URL link:", currentMatch.value);
+
+			// Ensure the URL has a protocol for correct linking
+			const href = currentMatch.value.startsWith('http') || currentMatch.value.startsWith('ftp')
+				? currentMatch.value
+				: `http://${currentMatch.value}`;
+
+			parts.push(
+				<a
+					key={`url-${keyCounter++}`}
+					href={href}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="text-blue-500 hover:underline"
+				>
+					{currentMatch.value}
+				</a>
+			);
+		}
+
+		lastIndex = currentMatch.index + currentMatch.length;
+		console.log("Updated lastIndex:", lastIndex);
 	}
 
+	// Add any remaining text after the last match
+	if (lastIndex < text.length) {
+		const remainingText = text.substring(lastIndex);
+		console.log("Adding remaining text:", remainingText);
+		parts.push(<span key={`text-${keyCounter++}`}>{remainingText}</span>);
+	}
+
+	console.log("Final parts array:", parts);
 	return parts;
 };
 
@@ -180,7 +247,7 @@ const Post = ({ post }) => {
 
 	const formattedDate = formatPostDate(post.createdAt);
 
-	
+
 
 	const handleDeletePost = () => {
 		deletePost()
