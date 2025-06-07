@@ -9,9 +9,11 @@ import {formatPostDate} from "../../utils/date/index.js"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import LoadingSpinner from "./LoadingSpinner.jsx";
+import { IoClose } from "react-icons/io5";
 
 const Post = ({ post }) => {
 	const [comment, setComment] = useState("");
+	const [previewImg, setPreviewImg] = useState(null);
 	const postOwner = post.user;
 	
 	const {data:authUser} = useQuery({queryKey: ["authUser"]});
@@ -159,8 +161,9 @@ const Post = ({ post }) => {
 						{post.img && (
 							<img
 								src={post.img}
-								className='h-80 object-contain rounded-lg border border-gray-700'
-								alt=''
+								className='h-80 object-contain rounded-lg border border-gray-700 cursor-pointer'
+								alt='Post Image'
+								onClick={() => setPreviewImg(post.img)}
 							/>
 						)}
 					</div>
@@ -253,6 +256,21 @@ const Post = ({ post }) => {
 					</div>
 				</div>
 			</div>
+			{previewImg && (
+				<div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+				<img
+					src={previewImg}
+					className="max-h-[90%] max-w-[90%] object-contain"
+					alt="Full Preview"
+				/>
+				<button
+					className="absolute top-4 right-4 text-white text-3xl"
+					onClick={() => setPreviewImg(null)}
+				>
+					<IoClose />
+				</button>
+				</div>
+			)}
 		</>
 	);
 };
