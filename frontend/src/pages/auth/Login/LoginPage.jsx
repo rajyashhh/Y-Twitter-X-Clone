@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import XSvg from "../../../components/svgs/X";
+import { useEffect } from "react";
+
 
 import { MdOutlineMail } from "react-icons/md";
 import { MdPassword } from "react-icons/md";
@@ -9,6 +11,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query'
 import {toast} from "react-hot-toast";
 
 const LoginPage = () => {
+	
 	const [formData, setFormData] = useState({
 		username: "",
 		password: "",
@@ -63,6 +66,92 @@ const LoginPage = () => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
 	};
 
+	useEffect(() => {
+		const handleContextMenu = (e) => {
+			e.preventDefault();
+			toast.error("Right-click is disabled for security reasons.");
+			return false;
+		};
+
+		const handleKeyDown = (e) => {
+			// Disable F12 (Developer Tools)
+			if (e.key === 'F12') {
+				e.preventDefault();
+				toast.error("Developer tools are disabled for security reasons.");
+				return false;
+			}
+			
+			// Disable Ctrl+Shift+I (Developer Tools)
+			if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+				e.preventDefault();
+				toast.error("Developer tools are disabled for security reasons.");
+				return false;
+			}
+			
+			// Disable Ctrl+Shift+J (Console)
+			if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+				e.preventDefault();
+				toast.error("Console access is disabled for security reasons.");
+				return false;
+			}
+			
+			// Disable Ctrl+U (View Source)
+			if (e.ctrlKey && e.key === 'u') {
+				e.preventDefault();
+				toast.error("View source is disabled for security reasons.");
+				return false;
+			}
+			
+			// Disable Ctrl+Shift+C (Element Inspector)
+			if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+				e.preventDefault();
+				toast.error("Element inspector is disabled for security reasons.");
+				return false;
+			}
+			
+			// Disable Ctrl+A (Select All) - optional
+			if (e.ctrlKey && e.key === 'a') {
+				e.preventDefault();
+				return false;
+			}
+		};
+
+		const handleSelectStart = (e) => {
+			e.preventDefault();
+			return false;
+		};
+
+		const handleDragStart = (e) => {
+			e.preventDefault();
+			return false;
+		};
+
+		// Add event listeners
+		document.addEventListener('contextmenu', handleContextMenu);
+		document.addEventListener('keydown', handleKeyDown);
+		document.addEventListener('selectstart', handleSelectStart);
+		document.addEventListener('dragstart', handleDragStart);
+
+		// Disable text selection via CSS
+		document.body.style.userSelect = 'none';
+		document.body.style.webkitUserSelect = 'none';
+		document.body.style.mozUserSelect = 'none';
+		document.body.style.msUserSelect = 'none';
+
+		// Cleanup function
+		return () => {
+			document.removeEventListener('contextmenu', handleContextMenu);
+			document.removeEventListener('keydown', handleKeyDown);
+			document.removeEventListener('selectstart', handleSelectStart);
+			document.removeEventListener('dragstart', handleDragStart);
+			
+			// Restore text selection
+			document.body.style.userSelect = 'auto';
+			document.body.style.webkitUserSelect = 'auto';
+			document.body.style.mozUserSelect = 'auto';
+			document.body.style.msUserSelect = 'auto';
+		};
+	}, []);
 
 	return (
 		<div className='max-w-screen-xl mx-auto flex h-screen px-10'>
