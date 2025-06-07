@@ -12,7 +12,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 const ForgotPasswordPage = () => {
 	const [formData, setFormData] = useState({
-		
 		email: "",
 		password: "",
 		otp: "",
@@ -23,7 +22,13 @@ const ForgotPasswordPage = () => {
 	const [isOtpSent, setIsOtpSent] = useState(false);
 	const [isSendingOtp, setIsSendingOtp] = useState(false);
 	const [isEmailVerified, setIsEmailVerified] = useState(false);
+	
+	// Security: Add verification token state
+	const [verificationToken, setVerificationToken] = useState(null);
+	const [verificationTimestamp, setVerificationTimestamp] = useState(null);
+	
 	const navigate = useNavigate();
+	
 	useEffect(() => {
 		let interval;
 	
@@ -42,19 +47,44 @@ const ForgotPasswordPage = () => {
 		return () => clearInterval(interval);
 	}, [otpCoolDown]);
 	
+	// Security: Check if verification is still valid (within 10 minutes)
+	const isVerificationValid = () => {
+		if (!verificationTimestamp || !isOtpVerified) return false;
+		const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+		return verificationTimestamp > tenMinutesAgo;
+	};
 
-	
+	// Security: Reset verification if expired
+	useEffect(() => {
+		const checkVerificationExpiry = () => {
+			if (isOtpVerified && !isVerificationValid()) {
+				setIsOtpVerified(false);
+				setIsEmailVerified(false);
+				setVerificationToken(null);
+				setVerificationTimestamp(null);
+				toast.error("Verification expired. Please verify your email again.");
+			}
+		};
 
+		const interval = setInterval(checkVerificationExpiry, 30000); // Check every 30 seconds
+		return () => clearInterval(interval);
+	}, [isOtpVerified, verificationTimestamp]);
 
 	const queryClient = useQueryClient();
 	const {mutate, isError, isPending, error} = useMutation({
-		mutationFn: async ({email,password}) => { 
+		mutationFn: async ({email, password}) => { 
+			// Security: Validate verification before making request
+			if (!isOtpVerified || !verificationToken || !isVerificationValid()) {
+				throw new Error("Email verification required. Please verify your email with OTP first.");
+			}
+
 			try {
 				const res = await fetch("/api/auth/forgot-password", {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
-		
+						// Security: Include verification token in headers
+						"X-Verification-Token": verificationToken,
 					},
 					body : JSON.stringify({email, password}),
 				} );
@@ -84,25 +114,50 @@ const ForgotPasswordPage = () => {
 		},
 		onSuccess: ()=> {
 			queryClient.invalidateQueries({ queryKey: ["authUser"] }); 
-			toast.success("Password Changed Successfully!")
+			toast.success("Password Changed Successfully!");
+			// Security: Clear verification data after successful password change
+			setIsOtpVerified(false);
+			setIsEmailVerified(false);
+			setVerificationToken(null);
+			setVerificationTimestamp(null);
 		}
 	});
 
 	const handleSubmit = (e) => {
-		e.preventDefault(); // page won't reload
+		e.preventDefault();
 		
+		// Security: Additional frontend validation
+		if (!isOtpVerified || !verificationToken || !isVerificationValid()) {
+			toast.error("Please verify your email with OTP first.");
+			return;
+		}
+
+		if (!formData.email || !formData.password) {
+			toast.error("Please fill in all required fields.");
+			return;
+		}
+
+		if (formData.password.length < 5) {
+			toast.error("Password must be at least 5 characters long.");
+			return;
+		}
+        
         mutate({ email: formData.email, password: formData.password });
 	};
 
 	const handleInputChange = (e) => {
 		const { name, value } = e.target;
 		setFormData({ ...formData, [name]: value });
-		if (name === "username") {
-			if (/\s/.test(value)) {
-				setUsernameError("Username cannot contain spaces.");
-			} else {
-				setUsernameError("");
-			}
+		
+		// Security: Reset verification if email is changed after verification
+		if (name === "email" && isEmailVerified && value !== formData.email) {
+			setIsOtpVerified(false);
+			setIsEmailVerified(false);
+			setVerificationToken(null);
+			setVerificationTimestamp(null);
+			setShowOtpField(false);
+			setIsOtpSent(false);
+			toast.info("Email changed. Please verify your new email.");
 		}
 	};
 
@@ -112,6 +167,13 @@ const ForgotPasswordPage = () => {
 			toast.error("Please enter your email first.");
 			return;
 		}
+		
+		// Security: Reset previous verification when sending new OTP
+		setIsOtpVerified(false);
+		setIsEmailVerified(false);
+		setVerificationToken(null);
+		setVerificationTimestamp(null);
+		
 		setIsSendingOtp(true);
 		try {
 			const res = await fetch("/api/auth/send-otp-pass", {
@@ -155,8 +217,13 @@ const ForgotPasswordPage = () => {
 				if (!res.ok) {
 					throw new Error(data.error || "OTP verification failed");
 				}
+				
+				// Security: Store verification token and timestamp
 				setIsOtpVerified(true);
 				setIsEmailVerified(true);
+				setVerificationToken(data.verificationToken);
+				setVerificationTimestamp(Date.now());
+				
 				return data;
 			}),
 			{
@@ -167,6 +234,8 @@ const ForgotPasswordPage = () => {
 		);
 	};
 	
+	// Security: Determine if change password button should be enabled
+	const canChangePassword = isOtpVerified && verificationToken && isVerificationValid() && formData.email && formData.password;
 
 	return (
 		<div className='max-w-screen-xl mx-auto flex h-screen px-10'>
@@ -199,7 +268,7 @@ const ForgotPasswordPage = () => {
 							className={`btn rounded-full btn-primary text-white btn-outline whitespace-nowrap ${
 								otpCoolDown > 0 ? "opacity-50 cursor-not-allowed" : ""
 							}`}
-							
+							disabled={otpCoolDown > 0 || isSendingOtp}
 							>
 							{isSendingOtp
 								? "Sending OTP..."
@@ -213,7 +282,6 @@ const ForgotPasswordPage = () => {
 						
 					</div>
 					{showOtpField && (
-						
 						<div className="flex items-center gap-4">
 						<label className='input input-bordered rounded flex items-center gap-2 w-full mt-4'>
 							<MdPassword />
@@ -222,6 +290,7 @@ const ForgotPasswordPage = () => {
 							className='grow'
 							placeholder='Enter OTP'
 							name='otp'
+							disabled={isOtpVerified}
 							onChange={handleInputChange}
 							value={formData.otp}
 							/>
@@ -229,14 +298,12 @@ const ForgotPasswordPage = () => {
 						<button
 							type="button"
 							onClick={handleVerifyOtp}
-							disabled={isOtpVerified}
+							disabled={isOtpVerified || !formData.otp}
 							className={`btn rounded-full btn-primary text-white ${isOtpVerified ? "cursor-default opacity-80" : ""}`}
 						>
 							{isOtpVerified ? "Verified ✅" : "Verify OTP"}
 						</button>
 						</div>
-						
-						
 					)}
 					
 					<label className='input input-bordered rounded flex items-center gap-2'>
@@ -246,13 +313,44 @@ const ForgotPasswordPage = () => {
 							className='grow'
 							placeholder='New Password'
 							name='password'
+							disabled={!isOtpVerified}
 							onChange={handleInputChange}
 							value={formData.password}
 						/>
 					</label>
-					<button className='btn rounded-full btn-primary text-white' disabled={!isOtpVerified}>
+					
+					{/* Security: Enhanced button with multiple validation layers */}
+					<button 
+						type="submit"
+						className={`btn rounded-full btn-primary text-white ${
+							!canChangePassword ? "opacity-50 cursor-not-allowed" : ""
+						}`}
+						disabled={!canChangePassword || isPending}
+						onClick={(e) => {
+							// Security: Additional click handler validation
+							if (!canChangePassword) {
+								e.preventDefault();
+								toast.error("Please complete email verification first.");
+								return;
+							}
+						}}
+					>
 						{isPending ? "Loading...": "Change password"}
 					</button>
+					
+					{/* Security: Show verification status */}
+					{isOtpVerified && isVerificationValid() && (
+						<p className='text-green-500 text-sm text-center'>
+							✅ Email verified - You can now change your password
+						</p>
+					)}
+					
+					{isOtpVerified && !isVerificationValid() && (
+						<p className='text-red-500 text-sm text-center'>
+							⚠️ Verification expired - Please verify your email again
+						</p>
+					)}
+					
 					{isError && <p className='text-red-500'>{error.message}</p>}
 				</form>
 				<div className='flex flex-col lg:w-2/3 gap-2 mt-4'>
@@ -260,7 +358,6 @@ const ForgotPasswordPage = () => {
 					<Link to='/login'>
 						<button className='btn rounded-full btn-primary text-white btn-outline w-full'>Sign in</button>
 					</Link>
-					
 				</div>
 			</div>
 		</div>

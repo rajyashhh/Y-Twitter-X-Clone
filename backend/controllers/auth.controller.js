@@ -1,5 +1,6 @@
 import z from "zod";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken"; // MISSING IMPORT - This was causing the JWT error
 import { generateTokenAndSetCookie } from "../lib/utils/generateTokenAndSetCookie.js";
 import User from '../models/user.model.js';
 import nodemailer from "nodemailer";
@@ -7,69 +8,128 @@ import dotenv from "dotenv"
 import Otp from "../models/otp.model.js";
 
 dotenv.config();
+
+// MISSING DECLARATION - Create a Map to store verified emails
+const verifiedEmails = new Map();
+
 const signup = async (req, res) => {
   try {
-    const {fullName, username, email, password}=req.body;
+    const { fullName, username, email, password, verificationToken } = req.body;
+    
+    // CRITICAL VALIDATION #1: Check if verification token is provided
+    if (!verificationToken) {
+        return res.status(400).json({ 
+            error: "Email verification required. Please verify your email with OTP first." 
+        });
+    }
+    
+    // CRITICAL VALIDATION #2: Verify the JWT token
+    let tokenData;
+    try {
+        tokenData = jwt.verify(verificationToken, process.env.JWT_SECRET);
+    } catch (jwtError) {
+        return res.status(400).json({ 
+            error: "Invalid or expired verification token. Please verify your email again." 
+        });
+    }
+    
+    // CRITICAL VALIDATION #3: Check if email in token matches request email
+    if (tokenData.email !== email) {
+        return res.status(400).json({ 
+            error: "Email verification mismatch. Please verify your email again." 
+        });
+    }
+    
+    // CRITICAL VALIDATION #4: Check server-side verification status
+    const verificationData = verifiedEmails.get(email);
+    if (!verificationData || !verificationData.verified) {
+        return res.status(400).json({ 
+            error: "Email not verified. Please complete email verification first." 
+        });
+    }
+    
+    // CRITICAL VALIDATION #5: Check if verification is recent (within 10 minutes)
+    const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+    if (verificationData.timestamp < tenMinutesAgo) {
+        // Clean up expired verification
+        verifiedEmails.delete(email);
+        return res.status(400).json({ 
+            error: "Email verification expired. Please verify your email again." 
+        });
+    }
+    
+    // CRITICAL VALIDATION #6: Verify token matches stored token
+    if (verificationData.token !== verificationToken) {
+        return res.status(400).json({ 
+            error: "Invalid verification token. Please verify your email again." 
+        });
+    }
+
+    // Your existing Zod validation
     const requiredBody = z.object({
-        email : z.string().min(5).max(100).email(),
-        password : z.string().min(5,"Password must contain atleast 5 characters").max(20),
-        fullName : z.string().min(3).max(30),
-        username : z.string().min(3).max(30)
-    })
+        email: z.string().min(5).max(100).email(),
+        password: z.string().min(5, "Password must contain atleast 5 characters").max(20),
+        fullName: z.string().min(3).max(30),
+        username: z.string().min(3).max(30)
+    });
+
     const parsedDatawithSuccess = requiredBody.safeParse(req.body);
-    if(!parsedDatawithSuccess.success){
+    if (!parsedDatawithSuccess.success) {
         res.status(400).json({
-            message : "Incorrect format",
-            error : parsedDatawithSuccess.error
-        })
+            message: "Incorrect format",
+            error: parsedDatawithSuccess.error
+        });
         return;
     }
 
-    const existingUser = await User.findOne({username});
-    if(existingUser){
-        return res.status(400).json(
-            {
-                error : "username already taken!"
-            }
-        )
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+        return res.status(400).json({
+            error: "username already taken!"
+        });
     }
-    const existingEmail = await User.findOne({email});
-    if(existingEmail){
-        return res.status(400).json(
-            {
-                error : "Email already taken!"
-            }
-        )
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+        return res.status(400).json({
+            error: "Email already taken!"
+        });
     }
-    const hashedPassword = await bcrypt.hash(password,10)
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
-        fullName : fullName,
-        username : username,
-        email : email,
-        password : hashedPassword,
+        fullName: fullName,
+        username: username,
+        email: email,
+        password: hashedPassword,
         sessionVersion: 0
-    })
+    });
 
-    if(newUser){
-        
+    if (newUser) {
         await newUser.save();
-        generateTokenAndSetCookie(newUser._id, newUser.sessionVersion, res)
+        
+        // CRITICAL: Clean up verification data after successful signup
+        verifiedEmails.delete(email);
+        
+        generateTokenAndSetCookie(newUser._id, newUser.sessionVersion, res);
+
+        // Send welcome email (your existing code)
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
-              user: process.env.EMAIL_USER, // Set in .env file
-              pass: process.env.EMAIL_PASS  // Set in .env file
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
             }
-          });
-      
-          await transporter.verify();
-      
-          const info = await transporter.sendMail({
+        });
+
+        await transporter.verify();
+
+        await transporter.sendMail({
             from: `"${process.env.COMPANY_NAME || 'Yashhh Tech Team'}" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "Welcome to Y!",
-            text: `Hey ${username}, welome to Y!`,
+            text: `Hey ${username}, welcome to Y!`,
             html: `
             <!DOCTYPE html>
             <html lang="en">
@@ -151,30 +211,31 @@ const signup = async (req, res) => {
               </div>
             </body>
             </html>`
-          });
+        });
+
         return res.status(201).json({
             _id: newUser._id,
-            fullName : newUser.fullName,
-            username : newUser.username,
-            email : newUser.email,
-            followers : newUser.followers,
-            following : newUser.following,
-            profileImg : newUser.profileImg,
-            coverImg : newUser.coverImg
-        })
-    }
-    else{
+            fullName: newUser.fullName,
+            username: newUser.username,
+            email: newUser.email,
+            followers: newUser.followers,
+            following: newUser.following,
+            profileImg: newUser.profileImg,
+            coverImg: newUser.coverImg
+        });
+    } else {
         res.status(400).json({
-            error : "Invalid User Data"
-        })
+            error: "Invalid User Data"
+        });
     }
-  } catch (error) {
+} catch (error) {
     console.log("Error in signup controller", error);
     res.status(500).json({
-        error : "Internal Server Error"
-    })
-  }
+        error: "Internal Server Error"
+    });
+}
 };
+
 const login = async (req, res) => {
     try{
         const { username, password}=req.body;
@@ -210,8 +271,8 @@ const login = async (req, res) => {
             error : "Internal Server Error"
         })
     }
-    
 };
+
 const logout = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
@@ -236,7 +297,6 @@ const logout = async (req, res) => {
         });
     }
 };
-
 
 const getMe = async (req, res) => {
     try {
@@ -265,15 +325,6 @@ const sendOtp = async (req, res) => {
         return res.status(400).json({ error: "Invalid email format." });
       }
   
-      // Check rate limiting (optional - implement based on your needs)
-      // const recentOtp = await Otp.findOne({ 
-      //   email, 
-      //   createdAt: { $gte: new Date(Date.now() - 60000) } // 1 minute cooldown
-      // });
-      // if (recentOtp) {
-      //   return res.status(429).json({ error: "Please wait before requesting another OTP." });
-      // }
-  
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const hashedOtp = await bcrypt.hash(otp, 10);
       const expiry = new Date(Date.now() + 10 * 60 * 1000);
@@ -289,8 +340,8 @@ const sendOtp = async (req, res) => {
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
-          user: process.env.EMAIL_USER, // Set in .env file
-          pass: process.env.EMAIL_PASS  // Set in .env file
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
         }
       });
   
@@ -315,29 +366,23 @@ const sendOtp = async (req, res) => {
   
       return res.status(200).json({
         message: "OTP sent successfully"
-        // Don't return messageId for security
       });
   
     } catch (error) {
       console.error("Error sending OTP:", error);
       
-      // Don't expose internal error details
       return res.status(500).json({ 
         error: "Failed to send OTP. Please try again." 
       });
     }
-  };
-
-
+};
 
 const sendOtpPass = async (req,res) => {
     try {
         const email = req.body.email?.trim();
         const user = await User.findOne({email});
         if(!user){
-
             res.status(403).json({
-
                 message : "No user found with this email."
             })
             return;
@@ -346,20 +391,10 @@ const sendOtpPass = async (req,res) => {
           return res.status(400).json({ error: "Email is required." });
         }
     
-        // More robust email validation
         const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
         if (!emailRegex.test(email)) {
           return res.status(400).json({ error: "Invalid email format." });
         }
-    
-        // Check rate limiting (optional - implement based on your needs)
-        // const recentOtp = await Otp.findOne({ 
-        //   email, 
-        //   createdAt: { $gte: new Date(Date.now() - 60000) } // 1 minute cooldown
-        // });
-        // if (recentOtp) {
-        //   return res.status(429).json({ error: "Please wait before requesting another OTP." });
-        // }
     
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedOtp = await bcrypt.hash(otp, 10);
@@ -372,12 +407,11 @@ const sendOtpPass = async (req,res) => {
           expiresAt: expiry
         });
     
-        // Use environment variables for email configuration
         const transporter = nodemailer.createTransport({
           service: "gmail",
           auth: {
-            user: process.env.EMAIL_USER, // Set in .env file
-            pass: process.env.EMAIL_PASS  // Set in .env file
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
           }
         });
     
@@ -402,80 +436,94 @@ const sendOtpPass = async (req,res) => {
     
         return res.status(200).json({
           message: "OTP sent successfully"
-          // Don't return messageId for security
         });
     
       } catch (error) {
         console.error("Error sending OTP:", error);
         
-        // Don't expose internal error details
         return res.status(500).json({ 
           error: "Failed to send OTP. Please try again." 
         });
       }
 }
-const verify = async (req,res)=>{  const { email, otp } = req.body;
 
-if (!email || !otp) {
-  return res.status(400).json({ error: "Email and OTP are required" });
-}
+// FIXED VERIFY FUNCTION
+const verify = async (req, res) => {
+    const { email, otp } = req.body;
 
-try {
-  // 1. Find the OTP record
-  const otpRecord = await Otp.findOne({ email });
+    if (!email || !otp) {
+        return res.status(400).json({ error: "Email and OTP are required" });
+    }
 
-  if (!otpRecord) {
-    return res.status(400).json({ error: "OTP not found or already used" });
-  }
+    try {
+        // 1. Find the OTP record
+        const otpRecord = await Otp.findOne({ email });
 
-  // 2. Check if expired
-  if (otpRecord.expiresAt < new Date()) {
-    await Otp.deleteOne({ email }); // Clean up expired OTP
-    return res.status(400).json({ error: "OTP has expired. Please request a new one." });
-  }
+        if (!otpRecord) {
+            return res.status(400).json({ error: "OTP not found or already used" });
+        }
 
-  // 3. Compare hashed OTP
-  const isMatch = await bcrypt.compare(otp, otpRecord.code);
+        // 2. Check if expired
+        if (otpRecord.expiresAt < new Date()) {
+            await Otp.deleteOne({ email }); // Clean up expired OTP
+            return res.status(400).json({ error: "OTP has expired. Please request a new one." });
+        }
 
-  if (!isMatch) {
-    return res.status(401).json({ error: "Incorrect OTP" });
-  }
+        // 3. Compare hashed OTP - MAKE SURE OTP IS STRING
+        const isMatch = await bcrypt.compare(otp.toString(), otpRecord.code);
 
-  // 4. Success – optional cleanup
-  await Otp.deleteOne({ email });
+        if (!isMatch) {
+            return res.status(401).json({ error: "Incorrect OTP" });
+        }
 
-  res.status(200).json({ message: "OTP verified successfully" });
+        // 4. Generate verification token after successful OTP verification
+        const verificationToken = jwt.sign(
+            { 
+                email, 
+                verified: true, 
+                timestamp: Date.now() 
+            }, 
+            process.env.JWT_SECRET,
+            { expiresIn: '10m' }
+        );
+        
+        // Store verification status
+        verifiedEmails.set(email, {
+            verified: true,
+            token: verificationToken,
+            timestamp: Date.now()
+        });
 
-  // You can now mark the email as verified or continue to signup
-} catch (error) {
-  console.error("Error verifying OTP:", error.message);
-  res.status(500).json({ error: "Internal server error" });
-}
+        // 5. Clean up OTP after successful verification
+        await Otp.deleteOne({ email });
+
+        res.status(200).json({ 
+            message: "OTP verified successfully",
+            verificationToken
+        });
+
+    } catch (error) {
+        console.error("Error verifying OTP:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
 };
 
 const changePassword = async (req, res) => {
     try {
-        const { email, password } = req.body; // Expect email from client now
-        // You might want to add password validation (e.g., Zod) here too
+        const { email, password } = req.body;
+        
         if (!email || !password) {
             return res.status(400).json({ error: "Email and new password are required." });
         }
 
-        // Find the user by email
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ error: "User not found." });
         }
 
-        // Hash the new password
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Update user's password
         user.password = hashedPassword;
         await user.save();
-
-        // Optional: Invalidate any existing JWTs for this user if applicable
-        // For example, by updating a passwordLastChangedAt field and checking it in protectedRoute
 
         res.status(200).json({ message: "Password updated successfully." });
     } catch (error) {
@@ -491,11 +539,9 @@ const logoutAllDevices = async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
-        // Increment session version to invalidate all existing tokens
         user.sessionVersion += 1;
         await user.save();
 
-        // Clear the current session cookie
         res.cookie("jwt", "", { maxAge: 0 });
 
         res.status(200).json({

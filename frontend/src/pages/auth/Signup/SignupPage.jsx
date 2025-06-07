@@ -9,7 +9,6 @@ import { MdPassword } from "react-icons/md";
 import { MdDriveFileRenameOutline } from "react-icons/md";
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-
 const SignupPage = () => {
 	const [formData, setFormData] = useState({
 		email: "",
@@ -25,7 +24,9 @@ const SignupPage = () => {
 	const [isSendingOtp, setIsSendingOtp] = useState(false);
 	const [isEmailVerified, setIsEmailVerified] = useState(false);
 	const [usernameError, setUsernameError] = useState("");
+	const [verificationToken, setVerificationToken] = useState(""); // ADD THIS STATE
 	const navigate = useNavigate();
+
 	useEffect(() => {
 		let interval;
 	
@@ -43,23 +44,18 @@ const SignupPage = () => {
 	
 		return () => clearInterval(interval);
 	}, [otpCoolDown]);
-	
-
-	
-
 
 	const queryClient = useQueryClient();
 	const {mutate, isError, isPending, error} = useMutation({
-		mutationFn: async ({email,username,fullName,password}) => { 
+		mutationFn: async ({email, username, fullName, password, verificationToken}) => { // ADD verificationToken PARAMETER
 			try {
 				const res = await fetch("/api/auth/signup", {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
-		
 					},
-					body : JSON.stringify({email, username, fullName, password}),
-				} );
+					body: JSON.stringify({email, username, fullName, password, verificationToken}), // INCLUDE verificationToken
+				});
 				
 				const data = await res.json();
 
@@ -84,7 +80,7 @@ const SignupPage = () => {
 				throw error;
 			}
 		},
-		onSuccess: ()=> {
+		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["authUser"] }); 
 			toast.success("Account created successfully!")
 			navigate("/");
@@ -92,17 +88,33 @@ const SignupPage = () => {
 	});
 
 	const handleSubmit = (e) => {
-		e.preventDefault(); // page won't reload
+		e.preventDefault();
+		
+		// Check if OTP is verified before allowing signup
+		if (!isOtpVerified) {
+			toast.error("Please verify your email with OTP first.");
+			return;
+		}
+
+		// Check if verification token exists
+		if (!verificationToken) {
+			toast.error("Email verification token missing. Please verify your email again.");
+			return;
+		}
+
 		// Trim username and fullName before submitting
 		const trimmedData = {
 			...formData,
 			username: formData.username.trim(),
 			fullName: formData.fullName.trim(),
+			verificationToken: verificationToken // INCLUDE THE TOKEN
 		};
+
 		// Prevent submit if username error is present
 		if (usernameError) {
 			return;
 		}
+		
 		mutate(trimmedData);
 	};
 
@@ -118,7 +130,7 @@ const SignupPage = () => {
 		}
 	};
 
-	const handleSendOtp = async ()=>{
+	const handleSendOtp = async () => {
 		if (otpCoolDown > 0) return;
 		if (!formData.email) {
 			toast.error("Please enter your email first.");
@@ -146,7 +158,7 @@ const SignupPage = () => {
 		} catch (err) {
 			console.error("OTP error:", err);
 			toast.error(err.message || "Something went wrong.");
-		}finally {
+		} finally {
 			setIsSendingOtp(false); 
 		}
 	}
@@ -157,28 +169,30 @@ const SignupPage = () => {
 			return;
 		}
 	
-		toast.promise(
-			fetch("/api/auth/verify-otp", {
+		try {
+			const res = await fetch("/api/auth/verify-otp", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ email: formData.email, otp: formData.otp }),
-			}).then(async (res) => {
-				const data = await res.json();
-				if (!res.ok) {
-					throw new Error(data.error || "OTP verification failed");
-				}
-				setIsOtpVerified(true);
-				setIsEmailVerified(true);
-				return data;
-			}),
-			{
-				loading: "Verifying OTP...",
-				success: "OTP Verified Successfully ✅",
-				error: "Wrong OTP! Try again ❌",
+			});
+
+			const data = await res.json();
+			
+			if (!res.ok) {
+				throw new Error(data.error || "OTP verification failed");
 			}
-		);
+
+			// STORE THE VERIFICATION TOKEN FROM RESPONSE
+			setVerificationToken(data.verificationToken);
+			setIsOtpVerified(true);
+			setIsEmailVerified(true);
+			toast.success("OTP Verified Successfully ✅");
+			
+		} catch (error) {
+			console.error("OTP verification error:", error);
+			toast.error(error.message || "Wrong OTP! Try again ❌");
+		}
 	};
-	
 
 	return (
 		<div className='max-w-screen-xl mx-auto flex h-screen px-10'>
@@ -201,8 +215,6 @@ const SignupPage = () => {
 								value={formData.username}
 							/>
 						</label>
-						{/* Username restriction note */}
-						{/* <p className='text-xs text-gray-400 ml-2 mb-2'>Username cannot contain spaces.</p> */}
 						{usernameError && <p className='text-xs text-red-500 ml-2 mb-2'>{usernameError}</p>}
 						<label className='input input-bordered rounded flex items-center gap-2'>
 							<MdDriveFileRenameOutline />
@@ -220,61 +232,56 @@ const SignupPage = () => {
 						<label className='input input-bordered rounded flex items-center gap-2 w-full'>
 							<MdOutlineMail />
 							<input
-							type='email'
-							className='grow'
-							placeholder='Email'
-							name='email'
-							disabled={isEmailVerified} 
-        					readOnly={isEmailVerified} 
-							onChange={handleInputChange}
-							value={formData.email}
+								type='email'
+								className='grow'
+								placeholder='Email'
+								name='email'
+								disabled={isEmailVerified} 
+        						readOnly={isEmailVerified} 
+								onChange={handleInputChange}
+								value={formData.email}
 							/>
 						</label>
 						{!isOtpVerified && (
 							<button
-							type="button"
-							onClick={handleSendOtp} 
-							className={`btn rounded-full btn-primary text-white btn-outline whitespace-nowrap ${
-								otpCoolDown > 0 ? "opacity-50 cursor-not-allowed" : ""
-							}`}
-							
+								type="button"
+								onClick={handleSendOtp} 
+								className={`btn rounded-full btn-primary text-white btn-outline whitespace-nowrap ${
+									otpCoolDown > 0 ? "opacity-50 cursor-not-allowed" : ""
+								}`}
 							>
-							{isSendingOtp
-								? "Sending OTP..."
-								: otpCoolDown > 0
-								? `Resend in ${otpCoolDown}s`
-								: isOtpSent
-								? "Resend OTP"
-								: "Send OTP"}
-						</button>
+								{isSendingOtp
+									? "Sending OTP..."
+									: otpCoolDown > 0
+									? `Resend in ${otpCoolDown}s`
+									: isOtpSent
+									? "Resend OTP"
+									: "Send OTP"}
+							</button>
 						)}
-						
 					</div>
 					{showOtpField && (
-						
 						<div className="flex items-center gap-4">
-						<label className='input input-bordered rounded flex items-center gap-2 w-full mt-4'>
-							<MdPassword />
-							<input
-							type='text'
-							className='grow'
-							placeholder='Enter OTP'
-							name='otp'
-							onChange={handleInputChange}
-							value={formData.otp}
-							/>
-						</label>
-						<button
-							type="button"
-							onClick={handleVerifyOtp}
-							disabled={isOtpVerified}
-							className={`btn rounded-full btn-primary text-white ${isOtpVerified ? "cursor-default opacity-80" : ""}`}
-						>
-							{isOtpVerified ? "Verified ✅" : "Verify OTP"}
-						</button>
+							<label className='input input-bordered rounded flex items-center gap-2 w-full mt-4'>
+								<MdPassword />
+								<input
+									type='text'
+									className='grow'
+									placeholder='Enter OTP'
+									name='otp'
+									onChange={handleInputChange}
+									value={formData.otp}
+								/>
+							</label>
+							<button
+								type="button"
+								onClick={handleVerifyOtp}
+								disabled={isOtpVerified}
+								className={`btn rounded-full btn-primary text-white ${isOtpVerified ? "cursor-default opacity-80" : ""}`}
+							>
+								{isOtpVerified ? "Verified ✅" : "Verify OTP"}
+							</button>
 						</div>
-						
-						
 					)}
 					
 					<label className='input input-bordered rounded flex items-center gap-2'>
@@ -289,7 +296,7 @@ const SignupPage = () => {
 						/>
 					</label>
 					<button className='btn rounded-full btn-primary text-white' disabled={!isOtpVerified}>
-						{isPending ? "Loading...": "Sign Up"}
+						{isPending ? "Loading..." : "Sign Up"}
 					</button>
 					{isError && <p className='text-red-500'>{error.message}</p>}
 				</form>
@@ -298,10 +305,10 @@ const SignupPage = () => {
 					<Link to='/login'>
 						<button className='btn rounded-full btn-primary text-white btn-outline w-full'>Sign in</button>
 					</Link>
-					
 				</div>
 			</div>
 		</div>
 	);
 };
+
 export default SignupPage;
