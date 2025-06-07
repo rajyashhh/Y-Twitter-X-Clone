@@ -30,7 +30,7 @@ const createPost = async (req,res)=>{
         await newPost.save();
 
         // Detect mentions and create notifications
-        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+        const mentionRegex = /@([a-zA-Z0-9_.]+)/g;
         const mentions = text.match(mentionRegex);
         if (mentions && mentions.length > 0) {
             const uniqueMentions = [...new Set(mentions)]; // Get unique usernames
@@ -108,7 +108,7 @@ const commentOnPost = async (req,res)=>{
         await post.save();
 
         // Detect mentions in the comment and create notifications
-        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+        const mentionRegex = /@([a-zA-Z0-9_.]+)/g;
         const mentions = text.match(mentionRegex);
         if (mentions && mentions.length > 0) {
             const uniqueMentions = [...new Set(mentions)]; // Get unique usernames

@@ -15,7 +15,7 @@ import { IoClose } from "react-icons/io5";
 // Utility function to render text with mentions and links
 const renderTextWithMentions = (text) => {
 	console.log("Input text for renderTextWithMentions:", text);
-	const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+	const mentionRegex = /@([a-zA-Z0-9_.]+)/g;
 	// Refined regex to include URLs without http/https, like example.com or www.example.com
 	const urlRegex = /\b((https?:\/\/|www\.)?\S+\.\S{2,}(?:\/\S*)*)\b/gi;
 
