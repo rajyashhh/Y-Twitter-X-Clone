@@ -66,7 +66,7 @@ const signup = async (req, res) => {
           await transporter.verify();
       
           const info = await transporter.sendMail({
-            from: `"${process.env.COMPANY_NAME || 'Yashh Tech Team'}" <${process.env.EMAIL_USER}>`,
+            from: `"${process.env.COMPANY_NAME || 'Yashhh Tech Team'}" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "Welcome to Y!",
             text: `Hey ${username}, welome to Y!`,
