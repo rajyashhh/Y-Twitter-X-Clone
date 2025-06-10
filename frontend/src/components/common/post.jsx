@@ -118,9 +118,13 @@ const Post = ({ post }) => {
 
 	const textareaRef = useRef(null);
 
+	if (!post) {
+		return null;
+	}
+
 	const postOwner = post.user;
 	
-	const {data:authUser} = useQuery({queryKey: ["authUser"]});
+	const {data:authUser, isLoading:isAuthLoading} = useQuery({queryKey: ["authUser"]});
 	const queryClient = useQueryClient();
 
 	// Debounce the mention query
@@ -177,7 +181,7 @@ const Post = ({ post }) => {
 			queryClient.invalidateQueries({queryKey: ["posts"]})
 		}
 	})
-	const isLiked = post.likes.includes(authUser._id);
+	const isLiked = authUser && post.likes.includes(authUser._id);
 	const  {mutate:likePost, isPending:isLiking} = useMutation({
 		mutationFn: async()=>{
 			try {
@@ -245,7 +249,7 @@ const Post = ({ post }) => {
 			toast.error(error.message)
 		}
 	})
-	const isMyPost = authUser._id === post.user._id;
+	const isMyPost = authUser && authUser._id === post.user._id;
 
 	const formattedDate = formatPostDate(post.createdAt);
 
@@ -383,15 +387,16 @@ const Post = ({ post }) => {
 												<div className='avatar'>
 													<div className='w-8 rounded-full'>
 														<img
-															src={comment.user.profileImg || "/avatar-placeholder.png"}
+															src={comment.user?.profileImg || "/avatar-placeholder.png"}
+															alt={comment.user?.username || "User"}
 														/>
 													</div>
 												</div>
 												<div className='flex flex-col'>
 													<div className='flex items-center gap-1'>
-														<span className='font-bold'>{comment.user.fullName}</span>
+														<span className='font-bold'>{comment.user?.fullName || "Unknown User"}</span>
 														<span className='text-gray-700 text-sm'>
-															@{comment.user.username}
+															@{comment.user?.username || "unknown"}
 														</span>
 													</div>
 													<div className='text-sm'>{renderTextWithMentions(comment.text)}</div>
