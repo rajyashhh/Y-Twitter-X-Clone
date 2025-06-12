@@ -124,6 +124,10 @@ const Post = ({ post }) => {
 
 	const postOwner = post.user;
 	
+	if (!postOwner) {
+		return null;
+	}
+
 	const {data:authUser, isLoading:isAuthLoading} = useQuery({queryKey: ["authUser"]});
 	const queryClient = useQueryClient();
 
@@ -326,18 +330,18 @@ const Post = ({ post }) => {
 		<>
 			<div className='flex gap-2 items-start p-4 border-b border-gray-700'>
 				<div className='avatar'>
-					<Link to={`/profile/${postOwner.username}`} className='w-8 rounded-full overflow-hidden'>
-						<img src={postOwner.profileImg || "/avatar-placeholder.png"} />
+					<Link to={`/profile/${postOwner?.username || 'unknown'}`} className='w-8 rounded-full overflow-hidden'>
+						<img src={postOwner?.profileImg || "/avatar-placeholder.png"} alt={postOwner?.username || "User"} />
 					</Link>
 				</div>
 				<div className='flex flex-col flex-1'>
 					<div className='flex gap-2 items-center'>
-						<Link to={`/profile/${postOwner.username}`} className='font-bold'>
-							{postOwner.fullName}
+						<Link to={`/profile/${postOwner?.username || 'unknown'}`} className='font-bold'>
+							{postOwner?.fullName || "Unknown User"}
 						</Link>
-						{postOwner.isVerified && <BsCheckCircleFill className='text-blue-500' />}
+						{postOwner?.isVerified && <BsCheckCircleFill className='text-blue-500' />}
 						<span className='text-gray-700 flex gap-1 text-sm'>
-							<Link to={`/profile/${postOwner.username}`}>@{postOwner.username}</Link>
+							<Link to={`/profile/${postOwner?.username || 'unknown'}`}>@{postOwner?.username || "unknown"}</Link>
 							<span>·</span>
 							<span>{formattedDate}</span>
 						</span>
