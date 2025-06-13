@@ -9,6 +9,7 @@ import NotificationPage from "./pages/notification/NotificationPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import FollowersPage from "./pages/profile/FollowersPage";
 import FollowingPage from "./pages/profile/FollowingPage";
+import PrivacyPolicyPage from "./pages/important/PrivacyPolicyPage.jsx"
 import Sidebar from "./components/common/Sidebar";
 import RightPanel from "./components/common/RightPanel";
 import { useQuery } from "@tanstack/react-query";
@@ -72,6 +73,7 @@ function App(){
         <Route path='/profile/:username/followers' element={authUser ? <FollowersPage/> : <Navigate to = "/login"/>}/>
         <Route path='/profile/:username/following' element={authUser ? <FollowingPage/> : <Navigate to = "/login"/>}/>
         <Route path="/search" element={authUser ? <SearchPage authUser={authUser} /> : <Navigate to="/login" />} />
+        <Route path="/privacy-policy" element={ <PrivacyPolicyPage />} />
       </Routes>
       {authUser && <RightPanel/> }
       
