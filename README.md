@@ -49,8 +49,7 @@ npm run dev
 
 
 📸 Screenshots
-// Will add soon
-(You can add screenshots here to show your UI)
+
 
 📚 Learning Goals
 
