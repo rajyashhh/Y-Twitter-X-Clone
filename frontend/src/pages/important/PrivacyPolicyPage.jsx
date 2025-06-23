@@ -1,77 +1,58 @@
-import XSvg from "../../components/svgs/X";
+import React from "react";
+import { MacbookScroll } from "@/components/ui/macbook-scroll";
 
-const PrivacyPolicyPage = () => {
-	return (
-		<div className='max-w-screen-xl mx-auto flex h-screen px-10 overflow-y-auto'>
-			<div className='flex-1 hidden lg:flex items-center justify-center'>
-				<XSvg className='lg:w-2/3 fill-white' />
-			</div>
-			<div className='flex-1 flex flex-col justify-start items-start text-white pt-10 space-y-6'>
-				<XSvg className='w-24 lg:hidden fill-white mb-4' />
-				<h1 className='text-4xl font-extrabold'>Privacy Policy</h1>
-				<p><strong>Effective Date:</strong> 10 June 2025</p>
+const MacbookScrollDemo=()=>{
+  return (
+    <div className="overflow-hidden dark:bg-[#0B0B0F] bg-white w-full">
+      <MacbookScroll
+        title={
+          <span>
+            This Macbook is built with Tailwindcss. <br /> No kidding.
+          </span>
+        }
 
-				<p>
-					Welcome to <strong>Y</strong> ("we", "our", or "us"). Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your information when you use our platform — a microblogging site inspired by Twitter — accessible at <a href='https://y.yashhh.tech' className='text-blue-400 underline'>https://y.yashhh.tech</a>.
-				</p>
-
-				<h2 className='text-2xl font-bold mt-6'>1. Information We Collect</h2>
-				<ul className='list-disc list-inside'>
-					<li><strong>Name</strong></li>
-					<li><strong>Email address</strong></li>
-				</ul>
-
-				<h2 className='text-2xl font-bold mt-6'>2. How We Use Your Information</h2>
-				<p>We use your data to:</p>
-				<ul className='list-disc list-inside'>
-					<li>Provide and maintain the platform experience.</li>
-					<li>Authenticate users using JWT tokens.</li>
-					<li>Send important notifications and promotional content.</li>
-					<li>Improve user experience and platform reliability.</li>
-				</ul>
-				<p>We do <strong>not</strong> sell your data to third parties.</p>
-
-				<h2 className='text-2xl font-bold mt-6'>3. Authentication and Cookies</h2>
-				<p>We do not use third-party cookies or analytics tools. Only secure, signed JWT tokens are used for session authentication.</p>
-
-				<h2 className='text-2xl font-bold mt-6'>4. Data Sharing</h2>
-				<p>We may share your data only in the following scenarios:</p>
-				<ul className='list-disc list-inside'>
-					<li>With legal authorities if required by law.</li>
-					<li>To protect our rights or enforce platform rules.</li>
-				</ul>
-
-				<h2 className='text-2xl font-bold mt-6'>5. Data Retention</h2>
-				<p>We retain your information as long as your account is active or as required by law. You can request deletion of your data anytime via email.</p>
-
-				<h2 className='text-2xl font-bold mt-6'>6. Children’s Privacy</h2>
-				<p>Y is intended for users aged 13 and above. We do not knowingly collect data from users under 13. If you are a parent or guardian and believe your child has provided data, please contact us.</p>
-
-				<h2 className='text-2xl font-bold mt-6'>7. Your Rights</h2>
-				<ul className='list-disc list-inside'>
-					<li>Access or update your information.</li>
-					<li>Unsubscribe from promotional emails.</li>
-					<li>Request account deletion or data erasure.</li>
-				</ul>
-
-				<p>To do so, email us at <a href='mailto:contact@yashhh.tech' className='text-blue-400 underline'>contact@yashhh.tech</a>.</p>
-
-				<h2 className='text-2xl font-bold mt-6'>8. Security</h2>
-				<p>We use industry-standard measures like HTTPS and JWT for secure authentication. However, no method is completely immune to threats online.</p>
-
-				<h2 className='text-2xl font-bold mt-6'>9. Contact Us</h2>
-				<p>If you have any questions about this policy, please reach out to us at:</p>
-				<ul className='list-none'>
-					<li><strong>Email:</strong> <a href='mailto:contact@yashhh.tech' className='text-blue-400 underline'>contact@yashhh.tech</a></li>
-					<li><strong>Address:</strong> Gaya, Bihar</li>
-					<li><strong>Team:</strong> Yashhh Tech Team</li>
-				</ul>
-
-				<h2 className='text-2xl font-bold mt-6'>10. Changes to This Policy</h2>
-				<p>We may update this Privacy Policy periodically. Changes will be posted here with an updated effective date. Continued use of Y after changes means you accept the revised policy.</p>
-			</div>
-		</div>
-	);
+        src={`/linear.webp`}
+        showGradient={false} />
+    </div>
+  );
+}
+// Peerlist logo
+const Badge = ({
+  className
+}) => {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 56 56"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}>
+      <path
+        d="M56 28C56 43.464 43.464 56 28 56C12.536 56 0 43.464 0 28C0 12.536 12.536 0 28 0C43.464 0 56 12.536 56 28Z"
+        fill="#00AA45"></path>
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M28 54C42.3594 54 54 42.3594 54 28C54 13.6406 42.3594 2 28 2C13.6406 2 2 13.6406 2 28C2 42.3594 13.6406 54 28 54ZM28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z"
+        fill="#219653"></path>
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M27.0769 12H15V46H24.3846V38.8889H27.0769C34.7305 38.8889 41 32.9048 41 25.4444C41 17.984 34.7305 12 27.0769 12ZM24.3846 29.7778V21.1111H27.0769C29.6194 21.1111 31.6154 23.0864 31.6154 25.4444C31.6154 27.8024 29.6194 29.7778 27.0769 29.7778H24.3846Z"
+        fill="#24292E"></path>
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M18 11H29.0769C36.2141 11 42 16.5716 42 23.4444C42 30.3173 36.2141 35.8889 29.0769 35.8889H25.3846V43H18V11ZM25.3846 28.7778H29.0769C32.1357 28.7778 34.6154 26.39 34.6154 23.4444C34.6154 20.4989 32.1357 18.1111 29.0769 18.1111H25.3846V28.7778Z"
+        fill="white"></path>
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M17 10H29.0769C36.7305 10 43 15.984 43 23.4444C43 30.9048 36.7305 36.8889 29.0769 36.8889H26.3846V44H17V10ZM19 12V42H24.3846V34.8889H29.0769C35.6978 34.8889 41 29.7298 41 23.4444C41 17.1591 35.6978 12 29.0769 12H19ZM24.3846 17.1111H29.0769C32.6521 17.1111 35.6154 19.9114 35.6154 23.4444C35.6154 26.9775 32.6521 29.7778 29.0769 29.7778H24.3846V17.1111ZM26.3846 19.1111V27.7778H29.0769C31.6194 27.7778 33.6154 25.8024 33.6154 23.4444C33.6154 21.0864 31.6194 19.1111 29.0769 19.1111H26.3846Z"
+        fill="#24292E"></path>
+    </svg>
+  );
 };
 
-export default PrivacyPolicyPage;
+export default MacbookScrollDemo;
