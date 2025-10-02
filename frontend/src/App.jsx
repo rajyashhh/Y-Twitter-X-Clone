@@ -9,7 +9,6 @@ import NotificationPage from "./pages/notification/NotificationPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import FollowersPage from "./pages/profile/FollowersPage";
 import FollowingPage from "./pages/profile/FollowingPage";
-import PrivacyPolicyPage from "./pages/important/PrivacyPolicyPage.jsx"
 import CancellationAndRefundPage from "./pages/important/CancellationAndRefundPage.jsx";
 import ContactUsPage from "./pages/important/ContactUsPage.jsx";
 import ShippingAndDeliveryPage from "./pages/important/ShippingAndDeliveryPage.jsx";
@@ -77,7 +76,6 @@ function App(){
         <Route path='/profile/:username/followers' element={authUser ? <FollowersPage/> : <Navigate to = "/login"/>}/>
         <Route path='/profile/:username/following' element={authUser ? <FollowingPage/> : <Navigate to = "/login"/>}/>
         <Route path="/search" element={authUser ? <SearchPage authUser={authUser} /> : <Navigate to="/login" />} />
-        <Route path="/privacy-policy" element={ <PrivacyPolicyPage />} />
         <Route path="/contact-us" element={ <ContactUsPage />} />
         <Route path="/cancellation" element={ <CancellationAndRefundPage />} />
         <Route path="/shipping" element={ <ShippingAndDeliveryPage />} />
