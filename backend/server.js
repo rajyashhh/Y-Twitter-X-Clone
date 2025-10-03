@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";  // Add this import for file system checks
 import express from "express";
 import authRoutes from "./routes/auth.route.js"
 import userRoutes from "./routes/user.route.js"
@@ -47,23 +48,76 @@ app.get('/api', (req, res) => {
     res.json({ message: "API is working!" });
 });
 
-// FIXED: Add static file serving for production (Render needs this)
+// UPDATED: Add proper error handling for static file serving
 if (process.env.NODE_ENV === "production") {
-    app.use(express.static(path.join(__dirname, "../frontend/dist")));
+    const frontendDistPath = path.join(__dirname, "../frontend/dist");
+    const indexPath = path.join(frontendDistPath, "index.html");
     
+    console.log("Checking frontend paths:");
+    console.log("Frontend dist path:", frontendDistPath);
+    console.log("Index.html path:", indexPath);
+    console.log("Frontend dist exists:", fs.existsSync(frontendDistPath));
+    console.log("Index.html exists:", fs.existsSync(indexPath));
+    
+    // Check if frontend build exists
+    if (fs.existsSync(frontendDistPath) && fs.existsSync(indexPath)) {
+        console.log("✅ Frontend build found, serving static files");
+        app.use(express.static(frontendDistPath));
+        
+        app.get("*", (req, res) => {
+            // Don't serve static files for API routes
+            if (req.path.startsWith('/api/')) {
+                return res.status(404).json({ message: "API route not found" });
+            }
+            
+            try {
+                res.sendFile(indexPath);
+            } catch (error) {
+                console.error("Error serving index.html:", error);
+                res.status(500).json({ error: "Failed to serve frontend" });
+            }
+        });
+    } else {
+        console.log("⚠️ Frontend build not found, serving API only");
+        console.log("Run 'npm run build' to build the frontend");
+        
+        // Fallback when frontend is not built
+        app.get("*", (req, res) => {
+            if (req.path.startsWith('/api/')) {
+                return res.status(404).json({ message: "API route not found" });
+            }
+            
+            res.status(503).json({ 
+                message: "Frontend not available",
+                error: "Frontend build not found",
+                instructions: "Run 'npm run build' to build the frontend",
+                api_status: "API is working",
+                paths_checked: {
+                    dist_path: frontendDistPath,
+                    index_path: indexPath,
+                    dist_exists: fs.existsSync(frontendDistPath),
+                    index_exists: fs.existsSync(indexPath)
+                }
+            });
+        });
+    }
+} else {
+    // Development mode
     app.get("*", (req, res) => {
-        // Don't serve static files for API routes
         if (req.path.startsWith('/api/')) {
             return res.status(404).json({ message: "API route not found" });
         }
-        res.sendFile(path.resolve(__dirname, "../frontend", "dist", "index.html"));
+        res.json({ 
+            message: "Development server running",
+            note: "Frontend should be running on a separate port (usually 5173)"
+        });
     });
 }
 
 // FIXED: Always listen in production (Render requires this)
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+    console.log(`📁 Current directory: ${__dirname}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/api`);
 });
-
-// Remove the export default for Render deployment
-// export default app;  // This is for Vercel, not Render
