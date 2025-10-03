@@ -1,16 +1,42 @@
 import z from "zod";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken"; // MISSING IMPORT - This was causing the JWT error
+import jwt from "jsonwebtoken";
 import { generateTokenAndSetCookie } from "../lib/utils/generateTokenAndSetCookie.js";
 import User from '../models/user.model.js';
-import nodemailer from "nodemailer";
+import { Resend } from 'resend';
 import dotenv from "dotenv"
 import Otp from "../models/otp.model.js";
 
 dotenv.config();
 
-// MISSING DECLARATION - Create a Map to store verified emails
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Create a Map to store verified emails
 const verifiedEmails = new Map();
+
+// Helper function to send emails with Resend
+const sendEmailWithResend = async (to, subject, html) => {
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'Yashhh Tech Team <contact@yashhh.tech>',
+            to: [to],
+            subject: subject,
+            html: html,
+        });
+
+        if (error) {
+            console.error('Resend error:', error);
+            throw new Error('Failed to send email');
+        }
+
+        console.log('Email sent successfully:', data);
+        return data;
+    } catch (error) {
+        console.error('Error sending email with Resend:', error);
+        throw error;
+    }
+};
 
 const signup = async (req, res) => {
   try {
@@ -114,113 +140,65 @@ const signup = async (req, res) => {
         
         generateTokenAndSetCookie(newUser._id, newUser.sessionVersion, res);
 
-        // Send welcome email with FIXED CONFIGURATION
+        // Send welcome email with Resend - Cool & Minimal Design
         try {
-            const transporter = nodemailer.createTransport({
-                host: 'smtp.gmail.com',
-                port: 587,
-                secure: false,
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS
-                },
-                tls: {
-                    rejectUnauthorized: false
-                },
-                connectionTimeout: 60000,
-                greetingTimeout: 30000,
-                socketTimeout: 60000
-            });
-
-            await transporter.verify();
-
-            await transporter.sendMail({
-                from: `"${process.env.COMPANY_NAME || 'Yashhh Tech Team'}" <${process.env.EMAIL_USER}>`,
-                to: email,
-                subject: "Welcome to Y!",
-                text: `Hey ${username}, welcome to Y!`,
-                html: `
+            await sendEmailWithResend(
+                email,
+                "Welcome to Y! 🎉",
+                `
                 <!DOCTYPE html>
-                <html lang="en">
+                <html>
                 <head>
-                  <meta charset="UTF-8">
-                  <title>Hey ${username}, Welcome to Y! 🎉</title>
-                  <style>
-                    body {
-                      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                      background-color: #fefefe;
-                      color: #333;
-                      padding: 20px;
-                    }
-                    .container {
-                      max-width: 600px;
-                      margin: auto;
-                      background: #fff;
-                      border-radius: 12px;
-                      padding: 30px;
-                      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-                    }
-                    h1 {
-                      color: #4A90E2;
-                    }
-                    .features {
-                      margin-top: 20px;
-                      padding-left: 20px;
-                    }
-                    .features li {
-                      margin-bottom: 10px;
-                    }
-                    .cta {
-                      margin-top: 30px;
-                      text-align: center;
-                    }
-                    .btn {
-                      display: inline-block;
-                      padding: 10px 20px;
-                      margin: 10px;
-                      background-color: #4A90E2;
-                      color: white;
-                      text-decoration: none;
-                      border-radius: 8px;
-                    }
-                    .footer {
-                      margin-top: 40px;
-                      font-size: 14px;
-                      color: #888;
-                      text-align: center;
-                    }
-                  </style>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Welcome to Y!</title>
                 </head>
-                <body>
-                  <div class="container">
-                    <h1>Welcome to Y! 👋</h1>
-                    <p>Hey ${username}!</p>
-                    <p>We're so excited to have you on board. You're now part of a growing community that's all about connection, creativity, and good vibes. ✨</p>
-                
-                    <h3>Here's what you can do on Y:</h3>
-                    <ul class="features">
-                      <li>📸 Share updates with your followers</li>
-                      <li>💬 Like and comment friends in real time</li>
-                      <li>🔔 Get instant notifications and never miss an update</li>
-                      <li>🎨 Personalize your profile and showcase your vibe</li>
-                      <li>🌟 Be part of an engaging, positive community</li>
-                    </ul>
-                
-                    <div class="cta">
-                      <p>Enjoying the vibes already? We'd LOVE to hear your feedback!</p>
-                      <a href="https://y.yashhh.tech/" class="btn">Tweet About Us on Y itself!🐦</a>
-                      <a href="https://github.com/rajyashhh/Y-Twitter-X-Clone" class="btn">Star Us on GitHub ⭐</a>
-                      <a href="https://www.linkedin.com/in/yashhhhh/" class="btn">Follow me on LinkedIn🎓</a>
+                <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+                        <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center;">
+                            
+                            <!-- Logo/Icon -->
+                            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 20px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
+                                <span style="color: white; font-size: 36px; font-weight: bold;">Y</span>
+                            </div>
+                            
+                            <!-- Main Content -->
+                            <h1 style="color: #1a1a1a; font-size: 28px; font-weight: 700; margin: 0 0 16px 0;">Welcome, ${username}! 👋</h1>
+                            
+                            <p style="color: #666; font-size: 18px; line-height: 1.6; margin: 0 0 32px 0;">
+                                You're now part of something special. Ready to connect, share, and inspire?
+                            </p>
+                            
+                            <!-- Feature Pills -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 32px 0;">
+                                <span style="background: #f0f0f0; color: #333; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">📸 Share Moments</span>
+                                <span style="background: #f0f0f0; color: #333; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">💬 Connect</span>
+                                <span style="background: #f0f0f0; color: #333; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">🌟 Inspire</span>
+                            </div>
+                            
+                            <!-- CTA Button -->
+                            <a href="https://y.yashhh.tech/" style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; padding: 16px 32px; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; transition: transform 0.2s;">
+                                Start Your Journey →
+                            </a>
+                            
+                            <!-- Social Links -->
+                            <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #eee;">
+                                <p style="color: #999; font-size: 14px; margin: 0 0 16px 0;">Connect with us:</p>
+                                <div style="display: flex; gap: 16px; justify-content: center;">
+                                    <a href="https://github.com/rajyashhh/Y-Twitter-X-Clone" style="color: #667eea; text-decoration: none; font-size: 14px; font-weight: 500;">GitHub ⭐</a>
+                                    <a href="https://www.linkedin.com/in/yashhhhh/" style="color: #667eea; text-decoration: none; font-size: 14px; font-weight: 500;">LinkedIn 🎓</a>
+                                </div>
+                            </div>
+                            
+                            <!-- Footer -->
+                            <p style="color: #ccc; font-size: 12px; margin: 32px 0 0 0;">
+                                Made with 💖 by Yashhh
+                            </p>
+                        </div>
                     </div>
-                
-                    <div class="footer">
-                      Made with 💖 by the Yashhh<br/>
-                      You're awesome. Keep shining ✨
-                    </div>
-                  </div>
                 </body>
                 </html>`
-            });
+            );
         } catch (emailError) {
             console.log("Welcome email failed to send:", emailError);
             // Don't fail signup if welcome email fails
@@ -349,39 +327,57 @@ const sendOtp = async (req, res) => {
         expiresAt: expiry
       });
   
-      // FIXED CONFIGURATION FOR RENDER
-      const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        },
-        tls: {
-          rejectUnauthorized: false
-        },
-        connectionTimeout: 60000,
-        greetingTimeout: 30000,
-        socketTimeout: 60000
-      });
-  
-      await transporter.verify();
-  
-      const info = await transporter.sendMail({
-        from: `"${process.env.COMPANY_NAME || 'Yashh Tech Team'}" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Your OTP Code",
-        text: `Your OTP is ${otp}. This code will expire in 10 minutes.`,
-        html: `
-          <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 400px; margin: auto; background-color: #f9f9f9; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-            <h2 style="color: #333;">🔐 OTP Verification</h2>
-            <p style="font-size: 16px;">Use the following code to complete your verification:</p>
-            <p style="font-size: 28px; font-weight: bold; color: #007bff;">${otp}</p>
-            <p style="font-size: 14px;">This code will expire in <strong>10 minutes</strong>.</p>
-            <p style="font-size: 12px; color: #888;">If you didn't request this, you can ignore this email.</p>
-          </div>`
-      });
+      // Send OTP with Resend - Cool & Minimal Design
+      await sendEmailWithResend(
+        email,
+        "Your Y Verification Code 🔐",
+        `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Your OTP Code</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; min-height: 100vh;">
+            <div style="max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+                <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center;">
+                    
+                    <!-- Icon -->
+                    <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 16px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
+                        <span style="color: white; font-size: 24px;">🔐</span>
+                    </div>
+                    
+                    <!-- Heading -->
+                    <h1 style="color: #1f2937; font-size: 24px; font-weight: 700; margin: 0 0 16px 0;">Verification Code</h1>
+                    
+                    <p style="color: #6b7280; font-size: 16px; line-height: 1.5; margin: 0 0 32px 0;">
+                        Enter this code to complete your verification:
+                    </p>
+                    
+                    <!-- OTP Code -->
+                    <div style="background: linear-gradient(135deg, #f3f4f6, #e5e7eb); border-radius: 12px; padding: 24px; margin: 32px 0;">
+                        <div style="font-size: 36px; font-weight: 800; color: #1f2937; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                            ${otp}
+                        </div>
+                    </div>
+                    
+                    <!-- Timer -->
+                    <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 12px; margin: 24px 0;">
+                        <p style="color: #92400e; font-size: 14px; margin: 0; font-weight: 500;">
+                            ⏰ Expires in 10 minutes
+                        </p>
+                    </div>
+                    
+                    <!-- Security Note -->
+                    <p style="color: #9ca3af; font-size: 12px; margin: 24px 0 0 0; line-height: 1.4;">
+                        If you didn't request this code, you can safely ignore this email.
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>`
+      );
   
       console.log("OTP sent successfully");
   
@@ -428,48 +424,68 @@ const sendOtpPass = async (req,res) => {
           expiresAt: expiry
         });
     
-        // FIXED CONFIGURATION FOR RENDER  
-        const transporter = nodemailer.createTransport({
-          host: 'smtp.gmail.com',
-          port: 587,
-          secure: false,
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-          },
-          tls: {
-            rejectUnauthorized: false
-          },
-          connectionTimeout: 60000,
-          greetingTimeout: 30000,
-          socketTimeout: 60000
-        });
+        // Send Password Reset OTP with Resend - Cool & Minimal Design
+        await sendEmailWithResend(
+          email,
+          "Reset Your Y Password 🔑",
+          `
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Password Reset OTP</title>
+          </head>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; min-height: 100vh;">
+              <div style="max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+                  <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center;">
+                      
+                      <!-- Icon -->
+                      <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444, #f97316); border-radius: 16px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
+                          <span style="color: white; font-size: 24px;">🔑</span>
+                      </div>
+                      
+                      <!-- Heading -->
+                      <h1 style="color: #1f2937; font-size: 24px; font-weight: 700; margin: 0 0 16px 0;">Password Reset</h1>
+                      
+                      <p style="color: #6b7280; font-size: 16px; line-height: 1.5; margin: 0 0 32px 0;">
+                          Use this code to reset your Y password:
+                      </p>
+                      
+                      <!-- OTP Code -->
+                      <div style="background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 1px solid #fca5a5; border-radius: 12px; padding: 24px; margin: 32px 0;">
+                          <div style="font-size: 36px; font-weight: 800; color: #dc2626; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                              ${otp}
+                          </div>
+                      </div>
+                      
+                      <!-- Timer -->
+                      <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 12px; margin: 24px 0;">
+                          <p style="color: #92400e; font-size: 14px; margin: 0; font-weight: 500;">
+                              ⏰ Expires in 10 minutes
+                          </p>
+                      </div>
+                      
+                      <!-- Security Warning -->
+                      <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; margin: 24px 0;">
+                          <p style="color: #dc2626; font-size: 13px; margin: 0; font-weight: 500;">
+                              ⚠️ If you didn't request a password reset, please ignore this email and your password will remain unchanged.
+                          </p>
+                      </div>
+                  </div>
+              </div>
+          </body>
+          </html>`
+        );
     
-        await transporter.verify();
-    
-        const info = await transporter.sendMail({
-          from: `"${process.env.COMPANY_NAME || 'Yashh Tech Team'}" <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: "Your OTP Code to change your password at Y!",
-          text: `Your OTP is ${otp}. This code will expire in 10 minutes.`,
-          html: `
-            <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 400px; margin: auto; background-color: #f9f9f9; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-              <h2 style="color: #333;">🔐 OTP Verification</h2>
-              <p style="font-size: 16px;">Use the following code to complete your verification:</p>
-              <p style="font-size: 28px; font-weight: bold; color: #007bff;">${otp}</p>
-              <p style="font-size: 14px;">This code will expire in <strong>10 minutes</strong>.</p>
-              <p style="font-size: 12px; color: #888;">If you didn't request this, you can ignore this email.</p>
-            </div>`
-        });
-    
-        console.log("OTP sent successfully");
+        console.log("Password reset OTP sent successfully");
     
         return res.status(200).json({
           message: "OTP sent successfully"
         });
     
       } catch (error) {
-        console.error("Error sending OTP:", error);
+        console.error("Error sending password reset OTP:", error);
         
         return res.status(500).json({ 
           error: "Failed to send OTP. Please try again." 
