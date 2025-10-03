@@ -48,20 +48,63 @@ app.get('/api', (req, res) => {
     res.json({ message: "API is working!" });
 });
 
-// UPDATED: Add proper error handling for static file serving
+// UPDATED: Comprehensive path detection for Render
 if (process.env.NODE_ENV === "production") {
-    const frontendDistPath = path.join(__dirname, "../frontend/dist");
-    const indexPath = path.join(frontendDistPath, "index.html");
+    // Try multiple possible paths where the frontend might be
+    const possiblePaths = [
+        path.join(__dirname, "../frontend/dist"),  // Original attempt
+        path.join(__dirname, "frontend/dist"),     // If in project root
+        path.join(__dirname, "../dist"),           // If dist is moved up
+        path.join(process.cwd(), "frontend/dist"), // Using process.cwd()
+        "/opt/render/project/frontend/dist",       // Absolute path
+        path.join(process.cwd(), "dist")           // If dist is in root
+    ];
     
-    console.log("Checking frontend paths:");
-    console.log("Frontend dist path:", frontendDistPath);
-    console.log("Index.html path:", indexPath);
-    console.log("Frontend dist exists:", fs.existsSync(frontendDistPath));
-    console.log("Index.html exists:", fs.existsSync(indexPath));
+    let frontendDistPath = null;
+    let indexPath = null;
     
-    // Check if frontend build exists
-    if (fs.existsSync(frontendDistPath) && fs.existsSync(indexPath)) {
+    console.log("=== FRONTEND PATH DETECTION ===");
+    console.log("Current working directory:", process.cwd());
+    console.log("__dirname:", __dirname);
+    
+    // Show what's in the current directory
+    try {
+        const currentDir = fs.readdirSync(process.cwd());
+        console.log("Contents of current directory:", currentDir);
+        
+        if (currentDir.includes('frontend')) {
+            try {
+                const frontendDir = fs.readdirSync(path.join(process.cwd(), 'frontend'));
+                console.log("Contents of frontend directory:", frontendDir);
+            } catch (e) {
+                console.log("Could not read frontend directory:", e.message);
+            }
+        }
+    } catch (e) {
+        console.log("Could not read current directory:", e.message);
+    }
+    
+    // Find the correct path
+    console.log("Testing possible frontend paths...");
+    for (const testPath of possiblePaths) {
+        const testIndexPath = path.join(testPath, "index.html");
+        const distExists = fs.existsSync(testPath);
+        const indexExists = fs.existsSync(testIndexPath);
+        
+        console.log(`📁 ${testPath} - dist: ${distExists}, index: ${indexExists}`);
+        
+        if (distExists && indexExists) {
+            frontendDistPath = testPath;
+            indexPath = testIndexPath;
+            console.log(`✅ Found frontend at: ${frontendDistPath}`);
+            break;
+        }
+    }
+    
+    if (frontendDistPath && indexPath) {
         console.log("✅ Frontend build found, serving static files");
+        console.log("Static files will be served from:", frontendDistPath);
+        
         app.use(express.static(frontendDistPath));
         
         app.get("*", (req, res) => {
@@ -71,6 +114,7 @@ if (process.env.NODE_ENV === "production") {
             }
             
             try {
+                console.log(`Serving index.html for: ${req.path}`);
                 res.sendFile(indexPath);
             } catch (error) {
                 console.error("Error serving index.html:", error);
@@ -78,8 +122,7 @@ if (process.env.NODE_ENV === "production") {
             }
         });
     } else {
-        console.log("⚠️ Frontend build not found, serving API only");
-        console.log("Run 'npm run build' to build the frontend");
+        console.log("⚠️ Frontend build not found at any expected location");
         
         // Fallback when frontend is not built
         app.get("*", (req, res) => {
@@ -89,14 +132,19 @@ if (process.env.NODE_ENV === "production") {
             
             res.status(503).json({ 
                 message: "Frontend not available",
-                error: "Frontend build not found",
-                instructions: "Run 'npm run build' to build the frontend",
+                error: "Frontend build not found at any expected locations",
                 api_status: "API is working",
-                paths_checked: {
-                    dist_path: frontendDistPath,
-                    index_path: indexPath,
-                    dist_exists: fs.existsSync(frontendDistPath),
-                    index_exists: fs.existsSync(indexPath)
+                debug_info: {
+                    current_dir: process.cwd(),
+                    dirname: __dirname,
+                    searched_paths: possiblePaths,
+                    current_dir_contents: (() => {
+                        try {
+                            return fs.readdirSync(process.cwd());
+                        } catch (e) {
+                            return "Could not read directory";
+                        }
+                    })()
                 }
             });
         });
@@ -116,8 +164,11 @@ if (process.env.NODE_ENV === "production") {
 
 // FIXED: Always listen in production (Render requires this)
 app.listen(PORT, '0.0.0.0', () => {
+    console.log("=== SERVER STARTUP INFO ===");
     console.log(`🚀 Server is running on port ${PORT}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-    console.log(`📁 Current directory: ${__dirname}`);
+    console.log(`📁 Current directory: ${process.cwd()}`);
+    console.log(`📁 __dirname: ${__dirname}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/api`);
+    console.log("===============================");
 });
