@@ -9,33 +9,56 @@ import Otp from "../models/otp.model.js";
 
 dotenv.config();
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend (guard for missing key)
+let resend;
+if (!process.env.RESEND_API_KEY) {
+  console.error("WARNING: RESEND_API_KEY is not set in environment!");
+} else {
+  try {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  } catch (e) {
+    console.error("Failed to initialize Resend client:", e && e.stack ? e.stack : e);
+  }
+}
 
-// Create a Map to store verified emails
+// Create a Map to store verified emails (in-memory)
 const verifiedEmails = new Map();
 
-// Helper function to send emails with Resend
-const sendEmailWithResend = async (to, subject, html) => {
-    try {
-        const { data, error } = await resend.emails.send({
-            from: 'Yashhh Tech Team <contact@yashhh.tech>',
-            to: [to],
-            subject: subject,
-            html: html,
-        });
-
-        if (error) {
-            console.error('Resend error:', error);
-            throw new Error('Failed to send email');
-        }
-
-        console.log('Email sent successfully:', data);
-        return data;
-    } catch (error) {
-        console.error('Error sending email with Resend:', error);
-        throw error;
+// Improved helper function to send emails with Resend
+const sendEmailWithResend = async (to, subject, html, text = null) => {
+  try {
+    if (!resend) {
+      throw new Error("Resend client not initialized. Check RESEND_API_KEY.");
     }
+
+    const payload = {
+      from: 'Yashhh Tech Team <contact@yashhh.tech>',
+      to: [to],
+      subject,
+      html,
+      // plain-text fallback helps deliverability and some mail clients
+      text: text || (typeof html === "string" ? html.replace(/<[^>]*>/g, "").slice(0, 1000) : ""),
+      reply_to: 'contact@yashhh.tech',
+    };
+
+    // Send and capture full response (don't destructure)
+    const response = await resend.emails.send(payload);
+
+    // Log the full response for debugging/delivery info
+    console.log("Resend send response:", JSON.stringify(response, null, 2));
+
+    // If provider returns an error-like object, surface it
+    if (response && (response.error || response.errors)) {
+      console.error("Resend returned an error payload:", response.error || response.errors);
+      throw new Error("Resend reported an error when sending email");
+    }
+
+    return response;
+  } catch (err) {
+    // log stack if available
+    console.error("Error sending email with Resend:", err && err.stack ? err.stack : err);
+    throw err;
+  }
 };
 
 const signup = async (req, res) => {
@@ -91,7 +114,7 @@ const signup = async (req, res) => {
         });
     }
 
-    // Your existing Zod validation
+    // Zod validation
     const requiredBody = z.object({
         email: z.string().min(5).max(100).email(),
         password: z.string().min(5, "Password must contain atleast 5 characters").max(20),
@@ -141,68 +164,98 @@ const signup = async (req, res) => {
         generateTokenAndSetCookie(newUser._id, newUser.sessionVersion, res);
 
         // Send welcome email with Resend - Cool & Minimal Design
-        try {
-            await sendEmailWithResend(
-                email,
-                "Welcome to Y! 🎉",
-                `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Welcome to Y!</title>
-                </head>
-                <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
-                    <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-                        <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center;">
-                            
-                            <!-- Logo/Icon -->
-                            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 20px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
-                                <span style="color: white; font-size: 36px; font-weight: bold;">Y</span>
-                            </div>
-                            
-                            <!-- Main Content -->
-                            <h1 style="color: #1a1a1a; font-size: 28px; font-weight: 700; margin: 0 0 16px 0;">Welcome, ${username}! 👋</h1>
-                            
-                            <p style="color: #666; font-size: 18px; line-height: 1.6; margin: 0 0 32px 0;">
-                                You're now part of something special. Ready to connect, share, and inspire?
-                            </p>
-                            
-                            <!-- Feature Pills -->
-                            <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 32px 0;">
-                                <span style="background: #f0f0f0; color: #333; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">📸 Share Moments</span>
-                                <span style="background: #f0f0f0; color: #333; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">💬 Connect</span>
-                                <span style="background: #f0f0f0; color: #333; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">🌟 Inspire</span>
-                            </div>
-                            
-                            <!-- CTA Button -->
-                            <a href="https://y.yashhh.tech/" style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; padding: 16px 32px; border-radius: 12px; font-weight: 600; font-size: 16px; margin: 24px 0; transition: transform 0.2s;">
-                                Start Your Journey →
-                            </a>
-                            
-                            <!-- Social Links -->
-                            <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #eee;">
-                                <p style="color: #999; font-size: 14px; margin: 0 0 16px 0;">Connect with us:</p>
-                                <div style="display: flex; gap: 16px; justify-content: center;">
-                                    <a href="https://github.com/rajyashhh/Y-Twitter-X-Clone" style="color: #667eea; text-decoration: none; font-size: 14px; font-weight: 500;">GitHub ⭐</a>
-                                    <a href="https://www.linkedin.com/in/yashhhhh/" style="color: #667eea; text-decoration: none; font-size: 14px; font-weight: 500;">LinkedIn 🎓</a>
-                                </div>
-                            </div>
-                            
-                            <!-- Footer -->
-                            <p style="color: #ccc; font-size: 12px; margin: 32px 0 0 0;">
-                                Made with 💖 by Yashhh
-                            </p>
-                        </div>
-                    </div>
-                </body>
-                </html>`
-            );
-        } catch (emailError) {
-            console.log("Welcome email failed to send:", emailError);
-            // Don't fail signup if welcome email fails
-        }
+ // Send welcome email with Resend - Simple & Traditional Design (like your nodemailer version)
+try {
+    console.log(`Attempting to send welcome email to ${email}`);
+    const welcomeHtml = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>Hey ${username}, Welcome to Y! 🎉</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background-color: #fefefe;
+              color: #333;
+              padding: 20px;
+            }
+            .container {
+              max-width: 600px;
+              margin: auto;
+              background: #fff;
+              border-radius: 12px;
+              padding: 30px;
+              box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            }
+            h1 {
+              color: #4A90E2;
+            }
+            .features {
+              margin-top: 20px;
+              padding-left: 20px;
+            }
+            .features li {
+              margin-bottom: 10px;
+            }
+            .cta {
+              margin-top: 30px;
+              text-align: center;
+            }
+            .btn {
+              display: inline-block;
+              padding: 10px 20px;
+              margin: 10px;
+              background-color: #4A90E2;
+              color: white;
+              text-decoration: none;
+              border-radius: 8px;
+            }
+            .footer {
+              margin-top: 40px;
+              font-size: 14px;
+              color: #888;
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Welcome to Y! 👋</h1>
+            <p>Hey ${username}!</p>
+            <p>We're so excited to have you on board. You're now part of a growing community that's all about connection, creativity, and good vibes. ✨</p>
+        
+            <h3>Here's what you can do on Y:</h3>
+            <ul class="features">
+              <li>📸 Share updates with your followers</li>
+              <li>💬 Like and comment friends in real time</li>
+              <li>🔔 Get instant notifications and never miss an update</li>
+              <li>🎨 Personalize your profile and showcase your vibe</li>
+              <li>🌟 Be part of an engaging, positive community</li>
+            </ul>
+        
+            <div class="cta">
+              <p>Enjoying the vibes already? We'd LOVE to hear your feedback!</p>
+              <a href="https://y.yashhh.tech/" class="btn">Tweet About Us on Y itself!🐦</a>
+              <a href="https://github.com/rajyashhh/Y-Twitter-X-Clone" class="btn">Star Us on GitHub ⭐</a>
+              <a href="https://www.linkedin.com/in/yashhhhh/" class="btn">Follow me on LinkedIn🎓</a>
+            </div>
+        
+            <div class="footer">
+              Made with 💖 by the Yashhh<br/>
+              You're awesome. Keep shining ✨
+            </div>
+          </div>
+        </body>
+        </html>`;
+
+    const sendResp = await sendEmailWithResend(email, "Welcome to Y! 🎉", welcomeHtml, `Hey ${username}, welcome to Y! Start your journey at https://y.yashhh.tech/`);
+    console.log("Welcome email send result:", sendResp && (sendResp.id || JSON.stringify(sendResp)));
+} catch (emailError) {
+    console.log("Welcome email failed to send:", emailError && (emailError.stack || emailError));
+    // Don't fail signup if welcome email fails
+}
+
 
         return res.status(201).json({
             _id: newUser._id,
@@ -219,12 +272,12 @@ const signup = async (req, res) => {
             error: "Invalid User Data"
         });
     }
-} catch (error) {
+  } catch (error) {
     console.log("Error in signup controller", error);
     res.status(500).json({
         error: "Internal Server Error"
     });
-}
+  }
 };
 
 const login = async (req, res) => {
@@ -342,41 +395,31 @@ const sendOtp = async (req, res) => {
         <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; min-height: 100vh;">
             <div style="max-width: 500px; margin: 0 auto; padding: 40px 20px;">
                 <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center;">
-                    
-                    <!-- Icon -->
                     <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 16px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
                         <span style="color: white; font-size: 24px;">🔐</span>
                     </div>
-                    
-                    <!-- Heading -->
                     <h1 style="color: #1f2937; font-size: 24px; font-weight: 700; margin: 0 0 16px 0;">Verification Code</h1>
-                    
                     <p style="color: #6b7280; font-size: 16px; line-height: 1.5; margin: 0 0 32px 0;">
                         Enter this code to complete your verification:
                     </p>
-                    
-                    <!-- OTP Code -->
                     <div style="background: linear-gradient(135deg, #f3f4f6, #e5e7eb); border-radius: 12px; padding: 24px; margin: 32px 0;">
                         <div style="font-size: 36px; font-weight: 800; color: #1f2937; letter-spacing: 8px; font-family: 'Courier New', monospace;">
                             ${otp}
                         </div>
                     </div>
-                    
-                    <!-- Timer -->
                     <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 12px; margin: 24px 0;">
                         <p style="color: #92400e; font-size: 14px; margin: 0; font-weight: 500;">
                             ⏰ Expires in 10 minutes
                         </p>
                     </div>
-                    
-                    <!-- Security Note -->
                     <p style="color: #9ca3af; font-size: 12px; margin: 24px 0 0 0; line-height: 1.4;">
                         If you didn't request this code, you can safely ignore this email.
                     </p>
                 </div>
             </div>
         </body>
-        </html>`
+        </html>`,
+        `Your verification code is ${otp}. Expires in 10 minutes.`
       );
   
       console.log("OTP sent successfully");
@@ -439,34 +482,23 @@ const sendOtpPass = async (req,res) => {
           <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; min-height: 100vh;">
               <div style="max-width: 500px; margin: 0 auto; padding: 40px 20px;">
                   <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center;">
-                      
-                      <!-- Icon -->
                       <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444, #f97316); border-radius: 16px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
                           <span style="color: white; font-size: 24px;">🔑</span>
                       </div>
-                      
-                      <!-- Heading -->
                       <h1 style="color: #1f2937; font-size: 24px; font-weight: 700; margin: 0 0 16px 0;">Password Reset</h1>
-                      
                       <p style="color: #6b7280; font-size: 16px; line-height: 1.5; margin: 0 0 32px 0;">
                           Use this code to reset your Y password:
                       </p>
-                      
-                      <!-- OTP Code -->
                       <div style="background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 1px solid #fca5a5; border-radius: 12px; padding: 24px; margin: 32px 0;">
                           <div style="font-size: 36px; font-weight: 800; color: #dc2626; letter-spacing: 8px; font-family: 'Courier New', monospace;">
                               ${otp}
                           </div>
                       </div>
-                      
-                      <!-- Timer -->
                       <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 12px; margin: 24px 0;">
                           <p style="color: #92400e; font-size: 14px; margin: 0; font-weight: 500;">
                               ⏰ Expires in 10 minutes
                           </p>
                       </div>
-                      
-                      <!-- Security Warning -->
                       <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; margin: 24px 0;">
                           <p style="color: #dc2626; font-size: 13px; margin: 0; font-weight: 500;">
                               ⚠️ If you didn't request a password reset, please ignore this email and your password will remain unchanged.
@@ -475,7 +507,8 @@ const sendOtpPass = async (req,res) => {
                   </div>
               </div>
           </body>
-          </html>`
+          </html>`,
+          `Your password reset code is ${otp}. Expires in 10 minutes.`
         );
     
         console.log("Password reset OTP sent successfully");
