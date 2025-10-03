@@ -114,13 +114,21 @@ const signup = async (req, res) => {
         
         generateTokenAndSetCookie(newUser._id, newUser.sessionVersion, res);
 
-        // Send welcome email (your existing code)
+        // Send welcome email with UPDATED CONFIGURATION
         const transporter = nodemailer.createTransport({
-            service: "gmail",
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            }
+            },
+            tls: {
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 60000,
+            greetingTimeout: 30000,
+            socketTimeout: 60000
         });
 
         await transporter.verify();
@@ -199,7 +207,7 @@ const signup = async (req, res) => {
             
                 <div class="cta">
                   <p>Enjoying the vibes already? We'd LOVE to hear your feedback!</p>
-                  <a href="[https://y.yashhh.tech/]" class="btn">Tweet About Us on Y itself!🐦</a>
+                  <a href="[https://y.yashhh.tech/](https://y.yashhh.tech/)" class="btn">Tweet About Us on Y itself!🐦</a>
                   <a href="https://github.com/rajyashhh/Y-Twitter-X-Clone" class="btn">Star Us on GitHub ⭐</a>
                   <a href="https://www.linkedin.com/in/yashhhhh/" class="btn">Follow me on LinkedIn🎓</a>
                 </div>
@@ -336,13 +344,21 @@ const sendOtp = async (req, res) => {
         expiresAt: expiry
       });
   
-      // Use environment variables for email configuration
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
+      // UPDATED CONFIGURATION FOR RENDER
+      const transporter = nodemailer.createTransporter({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS
-        }
+        },
+        tls: {
+          rejectUnauthorized: false
+        },
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000
       });
   
       await transporter.verify();
@@ -407,12 +423,21 @@ const sendOtpPass = async (req,res) => {
           expiresAt: expiry
         });
     
-        const transporter = nodemailer.createTransport({
-          service: "gmail",
+        // UPDATED CONFIGURATION FOR RENDER
+        const transporter = nodemailer.createTransporter({
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
           auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
-          }
+          },
+          tls: {
+            rejectUnauthorized: false
+          },
+          connectionTimeout: 60000,
+          greetingTimeout: 30000,
+          socketTimeout: 60000
         });
     
         await transporter.verify();

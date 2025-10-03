@@ -19,10 +19,11 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 })
 
-const PORT = process.env.PORT || 3000;
+// FIXED: Use Render's PORT with proper fallback
+const PORT = process.env.PORT || 10000;
 const __dirname = path.resolve();
 
-// Connect to MongoDB immediately (for serverless)
+// Connect to MongoDB
 connectMongoDB();
 
 const corsOptions = {
@@ -46,15 +47,23 @@ app.get('/api', (req, res) => {
     res.json({ message: "API is working!" });
 });
 
-// Static file serving (removed for serverless)
-// The vercel.json handles routing to frontend
-
-// Export the Express app for Vercel serverless functions
-export default app;
-
-// Only listen in development/local environment
-if (process.env.NODE_ENV !== "production") {
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
+// FIXED: Add static file serving for production (Render needs this)
+if (process.env.NODE_ENV === "production") {
+    app.use(express.static(path.join(__dirname, "../frontend/dist")));
+    
+    app.get("*", (req, res) => {
+        // Don't serve static files for API routes
+        if (req.path.startsWith('/api/')) {
+            return res.status(404).json({ message: "API route not found" });
+        }
+        res.sendFile(path.resolve(__dirname, "../frontend", "dist", "index.html"));
     });
 }
+
+// FIXED: Always listen in production (Render requires this)
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
+// Remove the export default for Render deployment
+// export default app;  // This is for Vercel, not Render
