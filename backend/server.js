@@ -12,45 +12,49 @@ import {v2 as cloudinary} from "cloudinary";
 
 const app = express();
 dotenv.config(); 
+
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 })
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 const __dirname = path.resolve();
 
+// Connect to MongoDB immediately (for serverless)
+connectMongoDB();
+
 const corsOptions = {
-    // methods : ["GET","POST"],
     origin: "*",
     credentials: true
 }
+
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions))
 app.use(express.json({limit: "5mb"}));
 app.use(cookieParser())
 
-
-
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/notifications', notificationRoutes)
 
-if (process.env.NODE_ENV === "production"){
-    app.use(express.static(path.join(__dirname, "frontend/dist")))
-    app.get("*", (req,res) => {
-        res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
-    })
-} else {
-    app.get("/", (req,res)=>{
-        console.log("req received")
-        res.send("Server is ready");
-    })
-}
+// Health check endpoint
+app.get('/api', (req, res) => {
+    res.json({ message: "API is working!" });
+});
 
-app.listen(PORT,()=>{
-    console.log(`Server is running on port ${PORT}`);
-    connectMongoDB();
-})
+// Static file serving (removed for serverless)
+// The vercel.json handles routing to frontend
+
+// Export the Express app for Vercel serverless functions
+export default app;
+
+// Only listen in development/local environment
+if (process.env.NODE_ENV !== "production") {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+}
