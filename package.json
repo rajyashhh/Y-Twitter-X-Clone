@@ -5,10 +5,9 @@
   "scripts": {
     "dev": "NODE_ENV=development nodemon backend/server.js",
     "start": "NODE_ENV=production node backend/server.js",
-    "build": "npm install && cd frontend && npm install && npm run build",
-    "build-frontend": "cd frontend && npm install && npm run build",
-    "install-all": "npm install && cd frontend && npm install",
-    "test-build": "npm run install-all && npm run build-frontend"
+    "build": "echo 'Installing backend deps...' && npm install && echo 'Installing frontend deps...' && npm install --prefix frontend && echo 'Building frontend...' && npm run build --prefix frontend && echo 'Checking build output...' && ls -la frontend/dist/ && echo 'Build completed!'",
+    "build-simple": "npm install --prefix frontend && npm run build --prefix frontend",
+    "test-build": "npm install && npm run build-simple"
   },
   "keywords": [],
   "author": "",
