@@ -1,6 +1,3 @@
-
-
-
 🐦 Y – A X CLone (Formerly Twitter)
 
 Y is a full-featured Twitter clone that replicates all the core functionalities of Twitter. Built as a personal project to learn and implement social networking features from scratch.
